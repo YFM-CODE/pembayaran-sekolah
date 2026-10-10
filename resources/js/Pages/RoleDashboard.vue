@@ -17,6 +17,9 @@ const konfigurasi = {
             { judul: 'Tarif SPP', isi: 'Atur usulan nominal per tingkat dan tahun ajaran.', rute: 'admin.tarif-spp.index' },
             { judul: 'Program Keringanan', isi: 'Kelola beasiswa dan potongan biaya SPP.', rute: 'admin.keringanan-spp.index' },
             { judul: 'Tagihan Siswa', isi: 'Terbitkan tagihan bulanan dan pantau status bayar.', rute: 'admin.tagihan-spp.index' },
+            { judul: 'Manajemen Pengguna', isi: 'Kelola akun admin, bendahara, staf TU, kepala sekolah, komite, dan siswa.', rute: 'admin.users.index' },
+            { judul: 'Master Data Kelas', isi: 'Kelola data kelas, tingkatan (X, XI, XII), dan jurusan.', rute: 'admin.kelas.index' },
+            { judul: 'Master Data Siswa', isi: 'Pendaftaran siswa baru, update status siswa, dan tautkan akun login.', rute: 'admin.siswa.index' },
         ],
     },
     staf_tu: {

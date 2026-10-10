@@ -47,6 +47,17 @@ const showingNavigationDropdown = ref(false);
                                     <NavLink :href="route('admin.tagihan-spp.index')" :active="route().current('admin.tagihan-spp.*')">
                                         Tagihan Siswa
                                     </NavLink>
+
+                                    <!-- TAMBAHAN BARU: Menu Master Data & Akun -->
+                                    <NavLink :href="route('admin.users.index')" :active="route().current('admin.users.*')">
+                                        Manajemen Pengguna
+                                    </NavLink>
+                                    <NavLink :href="route('admin.kelas.index')" :active="route().current('admin.kelas.*')">
+                                        Master Kelas
+                                    </NavLink>
+                                    <NavLink :href="route('admin.siswa.index')" :active="route().current('admin.siswa.*')">
+                                        Master Siswa
+                                    </NavLink>
                                 </template>
 
                                 <!-- Bendahara -->
@@ -212,6 +223,17 @@ const showingNavigationDropdown = ref(false);
                             </ResponsiveNavLink>
                             <ResponsiveNavLink :href="route('admin.tagihan-spp.index')" :active="route().current('admin.tagihan-spp.*')">
                                 Tagihan Siswa
+                            </ResponsiveNavLink>
+
+                            <!-- TAMBAHAN BARU: Menu Master Data & Akun -->
+                            <ResponsiveNavLink :href="route('admin.users.index')" :active="route().current('admin.users.*')">
+                                Manajemen Pengguna
+                            </ResponsiveNavLink>
+                            <ResponsiveNavLink :href="route('admin.kelas.index')" :active="route().current('admin.kelas.*')">
+                                Master Kelas
+                            </ResponsiveNavLink>
+                            <ResponsiveNavLink :href="route('admin.siswa.index')" :active="route().current('admin.siswa.*')">
+                                Master Siswa
                             </ResponsiveNavLink>
                         </template>
 

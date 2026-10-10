@@ -19,7 +19,8 @@ enum PeranPengguna: string
             self::STAF_TU => 'Staf Tata Usaha',
             self::KEPALA_SEKOLAH => 'Kepala Sekolah',
             self::KOMITE_SEKOLAH => 'Komite Sekolah',
-            self::SISWA => 'Siswa / Wali Murid',
+            self::SISWA => 'Siswa',
         };
     }
 }
+

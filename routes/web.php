@@ -1,6 +1,9 @@
 <?php
 
 use App\Enums\PeranPengguna;
+use App\Http\Controllers\Admin\KelasController;
+use App\Http\Controllers\Admin\SiswaController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\CetakKuitansiController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DispensasiSppController;
@@ -52,6 +55,20 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('/keringanan-spp/tetapkan-siswa', [KeringananSppController::class, 'tetapkanSiswa'])->name('keringanan-spp.tetapkan-siswa');
     Route::get('/tagihan-spp', [TagihanSppController::class, 'index'])->name('tagihan-spp.index');
     Route::post('/tagihan-spp/generate-bulanan', [TagihanSppController::class, 'generateBulanan'])->name('tagihan-spp.generate-bulanan');
+
+    // === FITUR TAMBAHAN: MASTER DATA & USER MANAGEMENT ===
+    // 1. Manajemen Pengguna (User Management)
+    Route::resource('users', UserController::class);
+    Route::patch('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
+    Route::post('users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
+
+    // 2. Master Data Kelas
+    Route::resource('kelas', KelasController::class);
+
+    // 3. Master Data Siswa
+    Route::resource('siswa', SiswaController::class);
+    Route::patch('siswa/{siswa}/status', [SiswaController::class, 'updateStatus'])->name('siswa.update-status');
+    Route::post('siswa/{siswa}/tautkan-user', [SiswaController::class, 'tautkanUser'])->name('siswa.tautkan-user');
 });
 
 Route::middleware(['auth', 'role:bendahara'])->prefix('bendahara')->name('bendahara.')->group(function () {
@@ -99,3 +116,4 @@ Route::middleware('auth')->prefix('cetak-kuitansi')->name('cetak-kuitansi.')->gr
 });
 
 require __DIR__.'/auth.php';
+

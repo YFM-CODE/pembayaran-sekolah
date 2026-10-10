@@ -43,19 +43,19 @@ class DashboardController extends Controller
                     ['label' => 'Tarif menunggu persetujuan', 'nilai' => TarifSpp::where('status_tarif', 'draft')->count()],
                 ],
                 PeranPengguna::SISWA->value => [
-                    ['label' => 'Total sisa kewajiban', 'nilai' => TagihanSpp::whereHas('siswa', fn($q) => $q->where('user_id', $user->id))->sum('sisa_tagihan'), 'tipe' => 'rupiah'],
+                    ['label' => 'Total sisa kewajiban', 'nilai' => TagihanSpp::whereHas('siswa', fn ($q) => $q->where('user_id', $user->id))->sum('sisa_tagihan'), 'tipe' => 'rupiah'],
                 ],
                 default => [],
             };
 
             if ($roleValue === PeranPengguna::SISWA->value) {
-                $tagihan = TagihanSpp::whereHas('siswa', fn($q) => $q->where('user_id', $user->id))
+                $tagihan = TagihanSpp::whereHas('siswa', fn ($q) => $q->where('user_id', $user->id))
                     ->where('sisa_tagihan', '>', 0)
                     ->with('siswa:id,nama_lengkap')
                     ->orderBy('jatuh_tempo')
                     ->limit(5)
                     ->get()
-                    ->map(fn($t) => [
+                    ->map(fn ($t) => [
                         'id' => $t->id,
                         'siswa' => $t->siswa?->nama_lengkap ?? 'Siswa',
                         'bulan' => $t->bulan,
@@ -70,9 +70,9 @@ class DashboardController extends Controller
         }
 
         return Inertia::render('RoleDashboard', [
-            'role'      => $roleValue,
+            'role' => $roleValue,
             'ringkasan' => $ringkasan,
-            'tagihan'   => $tagihan,
+            'tagihan' => $tagihan,
         ]);
     }
 }
