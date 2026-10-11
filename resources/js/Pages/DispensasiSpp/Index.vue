@@ -11,7 +11,6 @@ const props = defineProps({
 
 const page = usePage();
 
-// Evaluasi role secara aman (mendukung bentuk String maupun Enum Object)
 const userRole = computed(() => {
     const r = page.props.auth?.user?.role;
     return typeof r === 'object' && r !== null ? r.value : r;
@@ -34,7 +33,21 @@ const formPersetujuan = useForm({
     catatan_pimpinan: '',
 });
 
-// Daftar tagihan milik siswa yang sedang dipilih di form modal
+const getStatusValue = (item) => {
+    const raw = item?.status ?? item?.status_pengajuan;
+    return typeof raw === 'object' && raw !== null ? raw.value : raw;
+};
+
+const formatDate = (dateStr) => {
+    if (!dateStr) return '-';
+    const cleanDate = typeof dateStr === 'string' ? dateStr.split('T')[0] : dateStr;
+    const parts = cleanDate.split('-');
+    if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return cleanDate;
+};
+
 const daftarTagihanTersedia = computed(() => {
     if (!selectedSiswaId.value) return [];
     const siswa = props.daftarSiswaTagihan?.find(s => Number(s.id) === Number(selectedSiswaId.value));
@@ -69,6 +82,7 @@ const openModalPersetujuan = (item) => {
     formPersetujuan.reset();
     formPersetujuan.clearErrors();
     formPersetujuan.status = 'disetujui';
+    formPersetujuan.catatan_pimpinan = item.catatan_pimpinan || '';
     isModalPersetujuanOpen.value = true;
 };
 
@@ -133,8 +147,12 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID', { style: 'currency'
                                             Bulan <strong>{{ item.tagihan?.bulan }}/{{ item.tagihan?.tahun }}</strong>
                                             <div class="text-[11px] text-gray-400">Sisa: {{ formatRupiah(item.tagihan?.sisa_tagihan) }}</div>
                                         </td>
-                                        <td class="whitespace-nowrap px-5 py-3.5 font-semibold text-rose-600 text-xs">{{ item.batas_waktu_baru }}</td>
-                                        <td class="px-5 py-3.5 text-xs text-gray-600 max-w-xs truncate">{{ item.alasan_penundaan }}</td>
+                                        <td class="whitespace-nowrap px-5 py-3.5 font-semibold text-rose-600 text-xs">
+                                            {{ formatDate(item.batas_waktu_baru) }}
+                                        </td>
+                                        <td class="px-5 py-3.5 text-xs text-gray-600 max-w-xs truncate" :title="item.alasan_penundaan">
+                                            {{ item.alasan_penundaan }}
+                                        </td>
                                         <td class="whitespace-nowrap px-5 py-3.5 text-xs">
                                             <a 
                                                 v-if="item.dokumen_pendukung" 
@@ -149,22 +167,22 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID', { style: 'currency'
                                         <td class="whitespace-nowrap px-5 py-3.5 text-center">
                                             <span
                                                 :class="{
-                                                    'bg-emerald-50 text-emerald-700 border border-emerald-200': (item.status?.value || item.status) === 'disetujui',
-                                                    'bg-amber-50 text-amber-700 border border-amber-200': ['menunggu', 'menunggu_persetujuan'].includes(item.status?.value || item.status),
-                                                    'bg-rose-50 text-rose-700 border border-rose-200': (item.status?.value || item.status) === 'ditolak'
+                                                    'bg-emerald-50 text-emerald-700 border border-emerald-200': getStatusValue(item) === 'disetujui',
+                                                    'bg-amber-50 text-amber-700 border border-amber-200': ['menunggu', 'menunggu_persetujuan'].includes(getStatusValue(item)),
+                                                    'bg-rose-50 text-rose-700 border border-rose-200': getStatusValue(item) === 'ditolak'
                                                 }"
-                                                class="rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase"
+                                                class="rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase inline-block"
                                             >
-                                                {{ (item.status?.value || item.status)?.replace('_', ' ') }}
+                                                {{ getStatusValue(item)?.replace('_', ' ') || 'MENUNGGU PERSETUJUAN' }}
                                             </span>
                                         </td>
                                         <td class="whitespace-nowrap px-5 py-3.5 text-center text-xs">
                                             <button
-                                                v-if="userRole === 'kepala_sekolah' && ['menunggu', 'menunggu_persetujuan'].includes(item.status?.value || item.status)"
+                                                v-if="userRole === 'kepala_sekolah' && ['menunggu', 'menunggu_persetujuan'].includes(getStatusValue(item))"
                                                 @click="openModalPersetujuan(item)"
-                                                class="font-semibold text-indigo-600 hover:text-indigo-900 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100"
+                                                class="font-semibold text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg border border-indigo-200 transition"
                                             >
-                                                Keputusan Kepsek
+                                                ⚖️ Beri Keputusan
                                             </button>
                                             <span v-else class="text-gray-400">-</span>
                                         </td>
@@ -188,7 +206,6 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID', { style: 'currency'
                     <p class="text-xs text-gray-500">Pilih siswa dan bulan tagihan yang dimintakan penundaan tenggat waktu</p>
                 </div>
 
-                <!-- Notifikasi Ringkasan Error Validasi -->
                 <div v-if="Object.keys(formAjukan.errors).length > 0" class="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs">
                     <p class="font-bold">Gagal mengirim permohonan:</p>
                     <ul class="list-disc list-inside mt-1 space-y-0.5">
@@ -197,7 +214,6 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID', { style: 'currency'
                 </div>
 
                 <form @submit.prevent="submitAjukan" class="space-y-4 text-xs">
-                    <!-- Dropdown Pilih Siswa -->
                     <div>
                         <label class="block font-semibold text-gray-700 mb-1">Pilih Siswa</label>
                         <select 
@@ -213,7 +229,6 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID', { style: 'currency'
                         </select>
                     </div>
 
-                    <!-- Dropdown Tagihan SPP Terkait -->
                     <div>
                         <label class="block font-semibold text-gray-700 mb-1">Pilih Bulan Tagihan SPP</label>
                         <select 
@@ -230,7 +245,6 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID', { style: 'currency'
                         <div v-if="formAjukan.errors.tagihan_spp_id" class="text-rose-600 mt-1">{{ formAjukan.errors.tagihan_spp_id }}</div>
                     </div>
 
-                    <!-- Batas Waktu Baru -->
                     <div>
                         <label class="block font-semibold text-gray-700 mb-1">Batas Waktu (Jatuh Tempo) Baru yang Diajukan</label>
                         <input 
@@ -242,7 +256,6 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID', { style: 'currency'
                         <div v-if="formAjukan.errors.batas_waktu_baru" class="text-rose-600 mt-1">{{ formAjukan.errors.batas_waktu_baru }}</div>
                     </div>
 
-                    <!-- Alasan Penundaan -->
                     <div>
                         <label class="block font-semibold text-gray-700 mb-1">Alasan Penundaan Pembayaran</label>
                         <textarea 
@@ -255,7 +268,6 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID', { style: 'currency'
                         <div v-if="formAjukan.errors.alasan_penundaan" class="text-rose-600 mt-1">{{ formAjukan.errors.alasan_penundaan }}</div>
                     </div>
 
-                    <!-- Upload Dokumen Surat Bukti -->
                     <div>
                         <label class="block font-semibold text-gray-700 mb-1">Dokumen Surat Keterangan / Bukti (PDF / Foto)</label>
                         <input 
@@ -281,6 +293,13 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID', { style: 'currency'
                 <div class="border-b pb-3">
                     <h3 class="text-base font-bold text-gray-900">Keputusan Kepala Sekolah</h3>
                     <p class="text-xs text-gray-500">{{ selectedDispensasi?.tagihan?.siswa?.nama_lengkap }} ({{ selectedDispensasi?.tagihan?.siswa?.nis }})</p>
+                </div>
+
+                <div v-if="Object.keys(formPersetujuan.errors).length > 0" class="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs">
+                    <p class="font-bold">Gagal memproses keputusan:</p>
+                    <ul class="list-disc list-inside mt-1 space-y-0.5">
+                        <li v-for="(err, key) in formPersetujuan.errors" :key="key">{{ err }}</li>
+                    </ul>
                 </div>
 
                 <form @submit.prevent="submitPersetujuan" class="space-y-4 text-xs">

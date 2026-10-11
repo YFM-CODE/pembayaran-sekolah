@@ -21,14 +21,12 @@ class DispensasiSppController extends Controller
 
     public function index(GlobalFilter $filter): Response
     {
-        // Ambil semua tagihan yang sisa tagihannya masih ada (sisa_tagihan > 0)
         $tagihanBelumLunas = TagihanSpp::with(['siswa.kelas'])
             ->where('sisa_tagihan', '>', 0)
             ->orderBy('tahun')
             ->orderBy('bulan')
             ->get();
 
-        // Kelompokkan tagihan per siswa untuk dropdown bertingkat
         $daftarSiswaTagihan = $tagihanBelumLunas->groupBy('siswa_id')->map(function ($items) {
             $siswa = $items->first()->siswa;
             return [
@@ -56,35 +54,35 @@ class DispensasiSppController extends Controller
     }
 
     public function store(SimpanPengajuanDispensasiRequest $request): RedirectResponse
-{
-    $validated = $request->validated();
+    {
+        $validated = $request->validated();
 
-    DB::beginTransaction();
-    try {
-        $pathDokumen = null;
-        if ($request->hasFile('dokumen_pendukung')) {
-            $pathDokumen = $request->file('dokumen_pendukung')->store('dokumen_dispensasi', 'public');
+        DB::beginTransaction();
+        try {
+            $pathDokumen = null;
+            if ($request->hasFile('dokumen_pendukung')) {
+                $pathDokumen = $request->file('dokumen_pendukung')->store('dokumen_dispensasi', 'public');
+            }
+
+            $this->dispensasiRepo->simpan([
+                'tagihan_spp_id'    => $validated['tagihan_spp_id'],
+                'pemohon_id'        => $request->user()->id,
+                'tanggal_pengajuan' => now()->toDateString(),
+                'batas_waktu_baru'  => $validated['batas_waktu_baru'],
+                'alasan_penundaan'  => $validated['alasan_penundaan'],
+                'dokumen_pendukung' => $pathDokumen,
+                'status'            => 'menunggu_persetujuan',
+            ]);
+
+            DB::commit();
+
+            return redirect()->back()->with('success', 'Pengajuan dispensasi berhasil dikirim.');
+        } catch (Throwable $th) {
+            DB::rollBack();
+
+            return redirect()->back()->withErrors(['error' => 'Gagal mengajukan dispensasi: ' . $th->getMessage()]);
         }
-
-        $this->dispensasiRepo->simpan([
-            'tagihan_spp_id'    => $validated['tagihan_spp_id'],
-            'pemohon_id'        => $request->user()->id,
-            'tanggal_perjanjian'=> now(), // Mengisi kolom wajib di tabel database
-            'batas_waktu_baru'  => $validated['batas_waktu_baru'],
-            'alasan_penundaan'  => $validated['alasan_penundaan'],
-            'dokumen_pendukung' => $pathDokumen,
-            'status_pengajuan'  => 'menunggu', // Sesuai enum pada schema migrasi
-        ]);
-
-        DB::commit();
-
-        return redirect()->back()->with('success', 'Pengajuan permohonan dispensasi berhasil diajukan.');
-    } catch (Throwable $th) {
-        DB::rollBack();
-
-        return redirect()->back()->withErrors(['error' => 'Gagal mengajukan dispensasi: ' . $th->getMessage()]);
     }
-}
 
     public function persetujuan(Request $request, int $dispensasiSpp): RedirectResponse
     {
@@ -102,21 +100,24 @@ class DispensasiSppController extends Controller
         DB::beginTransaction();
         try {
             $this->dispensasiRepo->perbarui($dispensasiSpp, [
-                'disetujui_oleh' => $request->user()->id,
-                'status' => $validated['status'],
+                'disetujui_oleh'   => $request->user()->id,
+                'status'           => $validated['status'],
                 'catatan_pimpinan' => $validated['catatan_pimpinan'] ?? null,
                 'tanggal_diproses' => now(),
             ]);
 
             if ($validated['status'] === 'disetujui') {
-                $dispensasi->tagihan->update([
-                    'jatuh_tempo' => $dispensasi->batas_waktu_baru,
-                ]);
+                $tagihan = $dispensasi->tagihan ?? TagihanSpp::find($dispensasi->tagihan_spp_id);
+                if ($tagihan) {
+                    $tagihan->update([
+                        'jatuh_tempo' => $dispensasi->batas_waktu_baru,
+                    ]);
+                }
             }
 
             DB::commit();
 
-            return redirect()->back()->with('success', 'Keputusan dispensasi berhasil diproses.');
+            return redirect()->back()->with('success', 'Keputusan dispensasi berhasil disimpan.');
         } catch (Throwable $th) {
             DB::rollBack();
 
