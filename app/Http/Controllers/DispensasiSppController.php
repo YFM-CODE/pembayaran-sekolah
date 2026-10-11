@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\PeranPengguna;
 use App\Filters\GlobalFilter;
 use App\Http\Requests\SimpanPengajuanDispensasiRequest;
 use App\Interfaces\DispensasiSppInterface;
+use App\Models\DispensasiSpp;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,10 +20,21 @@ class DispensasiSppController extends Controller
         protected DispensasiSppInterface $dispensasiRepo
     ) {}
 
-    public function index(GlobalFilter $filter): Response
+    public function index(Request $request, GlobalFilter $filter): Response
     {
+        $user = $request->user();
+        $roleValue = is_object($user?->role) ? $user->role->value : (string) $user?->role;
+
+        $dispensasiData = ($roleValue === PeranPengguna::SISWA->value)
+            ? DispensasiSpp::with(['tagihan.siswa.kelas', 'kepalaSekolah'])
+                ->whereHas('tagihan.siswa', fn ($q) => $q->where('user_id', $user->id))
+                ->latest()
+                ->paginate(15)
+                ->withQueryString()
+            : $this->dispensasiRepo->paginate($filter);
+
         return Inertia::render('DispensasiSpp/Index', [
-            'dispensasi' => $this->dispensasiRepo->paginate($filter),
+            'dispensasi' => $dispensasiData,
             'filters' => request()->all(['search']),
         ]);
     }

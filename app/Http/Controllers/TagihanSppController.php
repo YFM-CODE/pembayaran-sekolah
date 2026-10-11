@@ -27,11 +27,19 @@ class TagihanSppController extends Controller
         $roleValue = is_object($user->role) ? $user->role->value : $user->role;
 
         if ($roleValue === PeranPengguna::SISWA->value) {
-            $siswa = Siswa::where('user_id', $user->id)->firstOrFail();
-            $tagihan = $this->tagihanRepo->daftarTagihanSiswa($siswa->id);
+            $siswa = Siswa::with('kelas')->where('user_id', $user->id)->first();
+            $tagihan = $siswa ? $this->tagihanRepo->daftarTagihanSiswa($siswa->id) : collect([]);
 
             return Inertia::render('Siswa/TagihanSaya', [
                 'tagihan' => $tagihan,
+                'siswa' => $siswa ? [
+                    'id' => $siswa->id,
+                    'nama_lengkap' => $siswa->nama_lengkap,
+                    'nis' => $siswa->nis,
+                    'nisn' => $siswa->nisn,
+                    'kelas' => $siswa->kelas?->nama_kelas ?? '-',
+                    'status_siswa' => $siswa->status_siswa,
+                ] : null,
             ]);
         }
 
@@ -60,7 +68,7 @@ class TagihanSppController extends Controller
 
         if ($tarifDisetujui->isEmpty()) {
             return redirect()->back()->withErrors([
-                'error' => 'Tidak dapat membuat tagihan: Belum ada tarif SPP pada tahun ajaran ' . $validated['tahun_ajaran'] . ' yang disetujui oleh Komite Sekolah.',
+                'error' => 'Tidak dapat membuat tagihan: Belum ada tarif SPP pada tahun ajaran '.$validated['tahun_ajaran'].' yang disetujui oleh Komite Sekolah.',
             ]);
         }
 
@@ -77,6 +85,7 @@ class TagihanSppController extends Controller
                 // Lewati siswa jika tarif tingkatnya belum disetujui komite
                 if (! $tingkat || ! $tarifDisetujui->has($tingkat)) {
                     $totalDilewati++;
+
                     continue;
                 }
 
@@ -129,7 +138,7 @@ class TagihanSppController extends Controller
             DB::rollBack();
 
             return redirect()->back()->withErrors([
-                'error' => 'Gagal mengenerate tagihan: ' . $th->getMessage(),
+                'error' => 'Gagal mengenerate tagihan: '.$th->getMessage(),
             ]);
         }
     }

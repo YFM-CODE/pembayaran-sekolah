@@ -39,11 +39,33 @@ class HandleInertiaRequests extends Middleware
             : (PeranPengguna::tryFrom((string) $role)?->label() ?? 'Siswa');
 
         $badges = [];
+        $siswaData = null;
+
         if ($user && $roleValue === 'admin') {
             try {
                 $badges['tagihan_belum_lunas'] = TagihanSpp::where('status', '!=', 'lunas')->count();
             } catch (\Throwable $e) {
                 // Ignore if table not yet migrated
+            }
+        } elseif ($user && $roleValue === 'siswa') {
+            try {
+                $badges['tagihan_siswa_belum_lunas'] = TagihanSpp::whereHas('siswa', fn ($q) => $q->where('user_id', $user->id))
+                    ->where('status', '!=', 'lunas')
+                    ->count();
+
+                $siswaModel = $user->siswa()->with('kelas')->first();
+                if ($siswaModel) {
+                    $siswaData = [
+                        'id' => $siswaModel->id,
+                        'nama_lengkap' => $siswaModel->nama_lengkap,
+                        'nis' => $siswaModel->nis,
+                        'nisn' => $siswaModel->nisn,
+                        'kelas' => $siswaModel->kelas?->nama_kelas ?? '-',
+                        'status_siswa' => $siswaModel->status_siswa,
+                    ];
+                }
+            } catch (\Throwable $e) {
+                // Ignore if relation or table not yet migrated
             }
         }
 
@@ -57,6 +79,7 @@ class HandleInertiaRequests extends Middleware
                     'role' => $roleValue,
                     'role_label' => $roleLabel,
                 ] : null,
+                'siswa' => $siswaData,
             ],
             'badges' => $badges,
         ];

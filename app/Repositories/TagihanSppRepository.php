@@ -17,7 +17,7 @@ class TagihanSppRepository implements TagihanSppInterface
 
     public function daftarTagihanSiswa(int $siswaId): Collection
     {
-        return TagihanSpp::with(['transaksi', 'dispensasi'])
+        return TagihanSpp::with(['transaksi.petugas', 'dispensasi', 'tarif', 'keringanan'])
             ->where('siswa_id', $siswaId)
             ->orderBy('tahun', 'desc')
             ->orderBy('bulan', 'desc')
