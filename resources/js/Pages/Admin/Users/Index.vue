@@ -25,6 +25,12 @@ const toggleStatus = (id) => {
     }
 };
 
+const deleteUser = (user) => {
+    if (confirm(`Yakin ingin menghapus pengguna "${user.name}"? Tindakan ini tidak dapat dibatalkan.`)) {
+        router.delete(route('admin.users.destroy', user.id));
+    }
+};
+
 const resetModal = ref(false);
 const selectedUser = ref(null);
 const resetForm = useForm({
@@ -106,6 +112,13 @@ const submitReset = () => {
                                     <button @click="toggleStatus(user.id)" class="text-xs text-yellow-600 hover:underline">Ubah Status</button>
                                     <button @click="openResetModal(user)" class="text-xs text-purple-600 hover:underline">Reset Sandi</button>
                                     <Link :href="route('admin.users.edit', user.id)" class="text-xs text-indigo-600 hover:underline">Edit</Link>
+                                    <button
+                                        v-if="user.id !== $page.props.auth.user.id"
+                                        @click="deleteUser(user)"
+                                        class="text-xs text-red-600 hover:underline"
+                                    >
+                                        Hapus
+                                    </button>
                                 </td>
                             </tr>
                         </tbody>

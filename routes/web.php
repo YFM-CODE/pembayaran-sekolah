@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\PeranPengguna;
+use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\KelasController;
 use App\Http\Controllers\Admin\SiswaController;
 use App\Http\Controllers\Admin\UserController;
@@ -8,9 +9,11 @@ use App\Http\Controllers\CetakKuitansiController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DispensasiSppController;
 use App\Http\Controllers\KeringananSppController;
+use App\Http\Controllers\Komite\PersetujuanTarifController;
 use App\Http\Controllers\PembayaranSppController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SetoranKasirController;
+use App\Http\Controllers\Siswa\SiswaDashboardController;
 use App\Http\Controllers\TagihanSppController;
 use App\Http\Controllers\TarifSppController;
 use Illuminate\Foundation\Application;
@@ -50,6 +53,7 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    // Route::get('/dashboard', AdminDashboardController::class)->name('dashboard');
     Route::resource('tarif-spp', TarifSppController::class);
     Route::resource('keringanan-spp', KeringananSppController::class);
     Route::post('/keringanan-spp/tetapkan-siswa', [KeringananSppController::class, 'tetapkanSiswa'])->name('keringanan-spp.tetapkan-siswa');
@@ -100,12 +104,16 @@ Route::middleware(['auth', 'role:kepala_sekolah'])->prefix('kepsek')->name('keps
 
 Route::middleware(['auth', 'role:komite_sekolah'])->prefix('komite')->name('komite.')->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
-    Route::get('/tarif-spp', [TarifSppController::class, 'index'])->name('tarif-spp.index');
-    Route::post('/tarif-spp/{tarifSpp}/persetujuan-komite', [TarifSppController::class, 'setujuiKomite'])->name('tarif-spp.setujui-komite');
+
+    // Modul Persetujuan Tarif & Berita Acara oleh Komite
+    Route::get('/tarif-spp', [PersetujuanTarifController::class, 'index'])->name('tarif-spp.index');
+    Route::post('/tarif-spp/{tarifSpp}/persetujuan', [PersetujuanTarifController::class, 'proses'])->name('tarif-spp.proses');
+    Route::get('/tarif-spp/dokumen-ba/{persetujuan}', [PersetujuanTarifController::class, 'downloadDokumenBa'])->name('tarif-spp.dokumen-ba');
 });
 
 Route::middleware(['auth', 'role:siswa'])->prefix('siswa')->name('siswa.')->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    // Route::get('/dashboard', SiswaDashboardController::class)->name('dashboard');
     Route::get('/tagihan-saya', [TagihanSppController::class, 'index'])->name('tagihan-saya.index');
     Route::get('/dispensasi-saya', [DispensasiSppController::class, 'index'])->name('dispensasi-saya.index');
 });
@@ -116,4 +124,3 @@ Route::middleware('auth')->prefix('cetak-kuitansi')->name('cetak-kuitansi.')->gr
 });
 
 require __DIR__.'/auth.php';
-

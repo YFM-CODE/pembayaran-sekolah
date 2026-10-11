@@ -38,6 +38,7 @@ class UserRepository implements UserInterface
         if (isset($data['password'])) {
             $data['password'] = Hash::make($data['password']);
         }
+        $data['email_verified_at'] = now();
 
         return User::create($data);
     }

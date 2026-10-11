@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\Siswa;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -14,7 +15,13 @@ class SiswaRequest extends FormRequest
 
     public function rules(): array
     {
-        $siswaId = $this->route('siswa')?->id ?? $this->route('siswa');
+        $siswa = $this->route('siswa');
+        if (! $siswa instanceof Siswa) {
+            $siswa = Siswa::find($siswa);
+        }
+
+        $siswaId = $siswa?->id;
+        $userId = $siswa?->user_id;
 
         return [
             'nis' => [
@@ -31,14 +38,23 @@ class SiswaRequest extends FormRequest
             ],
             'nama_lengkap' => ['required', 'string', 'max:255'],
             'kelas_id' => ['required', 'exists:kelas,id'],
-            'status' => ['required', Rule::in(['aktif', 'lulus', 'pindah', 'keluar'])],
+            'status_siswa' => ['required', Rule::in(['aktif', 'lulus', 'pindah', 'keluar'])],
             'jenis_kelamin' => ['nullable', Rule::in(['L', 'P'])],
             'no_telepon' => ['nullable', 'string', 'max:20'],
             'alamat' => ['nullable', 'string'],
-            'user_id' => [
+
+            // Field Akun Pengguna
+            'email' => [
                 'nullable',
-                'exists:users,id',
-                Rule::unique('siswa', 'user_id')->ignore($siswaId),
+                'string',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($userId),
+            ],
+            'password' => [
+                'nullable',
+                'string',
+                'min:6',
             ],
         ];
     }

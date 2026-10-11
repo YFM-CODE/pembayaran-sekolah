@@ -50,56 +50,87 @@ class TagihanSppController extends Controller
             'jatuh_tempo' => ['required', 'date'],
         ]);
 
+        // Ambil tarif tahun ajaran terkait yang SUDAH DISETUJUI oleh Komite
+        $tarifDisetujui = TarifSpp::where('tahun_ajaran', $validated['tahun_ajaran'])
+            ->whereHas('persetujuanKomite', function ($q) {
+                $q->where('status_persetujuan', 'disetujui');
+            })
+            ->get()
+            ->keyBy('tingkat');
+
+        if ($tarifDisetujui->isEmpty()) {
+            return redirect()->back()->withErrors([
+                'error' => 'Tidak dapat membuat tagihan: Belum ada tarif SPP pada tahun ajaran ' . $validated['tahun_ajaran'] . ' yang disetujui oleh Komite Sekolah.',
+            ]);
+        }
+
         DB::beginTransaction();
         try {
             $daftarSiswa = Siswa::with(['kelas', 'keringanan'])->where('status_aktif', true)->get();
 
+            $totalDibuat = 0;
+            $totalDilewati = 0;
+
             foreach ($daftarSiswa as $siswa) {
+                $tingkat = $siswa->kelas?->tingkat;
+
+                // Lewati siswa jika tarif tingkatnya belum disetujui komite
+                if (! $tingkat || ! $tarifDisetujui->has($tingkat)) {
+                    $totalDilewati++;
+                    continue;
+                }
+
+                // Cek apakah tagihan bulan & tahun tersebut sudah pernah digenerate
                 if ($this->tagihanRepo->cekTagihanAda($siswa->id, $validated['bulan'], $validated['tahun'])) {
                     continue;
                 }
 
-                $tarif = TarifSpp::where('tingkat', $siswa->kelas?->tingkat)
-                    ->where('tahun_ajaran', $validated['tahun_ajaran'])
-                    ->first();
-
-                if (! $tarif) {
-                    continue;
-                }
-
-                $nominalAwal = $tarif->nominal_standar;
+                $tarif = $tarifDisetujui->get($tingkat);
+                $nominalAsli = $tarif->nominal_standar;
                 $potongan = 0;
+                $keringananSppId = null;
 
                 if ($siswa->keringanan && $siswa->keringanan->aktif) {
+                    $keringananSppId = $siswa->keringanan->id;
                     $potongan = $siswa->keringanan->tipe_potongan === 'persen'
-                        ? ($nominalAwal * ($siswa->keringanan->nilai_potongan / 100))
+                        ? ($nominalAsli * ($siswa->keringanan->nilai_potongan / 100))
                         : $siswa->keringanan->nilai_potongan;
                 }
 
-                $totalHarusDibayar = max(0, $nominalAwal - $potongan);
+                $nominalTagihan = max(0, $nominalAsli - $potongan);
 
                 TagihanSpp::create([
-                    'nomor_tagihan' => 'TAG-'.$validated['tahun'].str_pad($validated['bulan'], 2, '0', STR_PAD_LEFT).'-'.$siswa->nis,
                     'siswa_id' => $siswa->id,
                     'tarif_spp_id' => $tarif->id,
+                    'keringanan_spp_id' => $keringananSppId,
                     'bulan' => $validated['bulan'],
                     'tahun' => $validated['tahun'],
-                    'nominal_awal' => $nominalAwal,
-                    'potongan' => $potongan,
-                    'total_harus_bayar' => $totalHarusDibayar,
-                    'sisa_tagihan' => $totalHarusDibayar,
+                    'nominal_asli' => $nominalAsli,
+                    'nominal_potongan' => $potongan,
+                    'nominal_tagihan' => $nominalTagihan,
+                    'total_terbayar' => 0,
+                    'sisa_tagihan' => $nominalTagihan,
+                    'status' => 'belum_bayar',
                     'jatuh_tempo' => $validated['jatuh_tempo'],
-                    'status' => 'belum_lunas',
                 ]);
+
+                $totalDibuat++;
             }
 
             DB::commit();
 
-            return redirect()->back()->with('success', 'Tagihan bulanan berhasil digenerate.');
+            $pesan = "Berhasil membuat {$totalDibuat} tagihan SPP.";
+            if ($totalDilewati > 0) {
+                $pesan .= " Sebanyak {$totalDilewati} siswa dilewati karena tarif tingkat kelasnya belum disetujui Komite.";
+            }
+
+            return redirect()->back()->with('success', $pesan);
         } catch (Throwable $th) {
             DB::rollBack();
 
-            return redirect()->back()->withErrors(['error' => 'Gagal mengenerate tagihan: '.$th->getMessage()]);
+            return redirect()->back()->withErrors([
+                'error' => 'Gagal mengenerate tagihan: ' . $th->getMessage(),
+            ]);
         }
     }
 }

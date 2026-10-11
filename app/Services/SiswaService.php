@@ -3,61 +3,95 @@
 namespace App\Services;
 
 use App\Enums\PeranPengguna;
-use App\Interfaces\SiswaRepositoryInterface;
-use App\Interfaces\UserRepositoryInterface;
 use App\Models\Siswa;
+use App\Models\User;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class SiswaService
 {
-    public function __construct(
-        protected SiswaRepositoryInterface $siswaRepo,
-        protected UserRepositoryInterface $userRepo
-    ) {}
-
-    public function simpan(array $data): Siswa
+    public function buat(array $data): Siswa
     {
-        return $this->siswaRepo->create($data);
-    }
+        return DB::transaction(function () use ($data) {
+            $userId = null;
 
-    public function perbarui(Siswa $siswa, array $data): bool
-    {
-        return $this->siswaRepo->update($siswa, $data);
-    }
+            if (!empty($data['email'])) {
+                $user = User::create([
+                    'name' => $data['nama_lengkap'],
+                    'email' => $data['email'],
+                    'password' => Hash::make($data['password'] ?? $data['nis']),
+                    'role' => PeranPengguna::SISWA->value,
+                    'is_active' => true,
+                    'email_verified_at' => now(),
+                ]);
+                $userId = $user->id;
+            }
 
-    public function ubahStatus(Siswa $siswa, string $status): bool
-    {
-        return $this->siswaRepo->update($siswa, ['status' => $status]);
-    }
+            // Hapus email dan password agar tidak menyebabkan error kolom MySQL
+            $dataSiswa = Arr::except($data, ['email', 'password']);
+            $dataSiswa['user_id'] = $userId;
 
-    public function tautkanKeAkunUser(Siswa $siswa, int $userId): bool
-    {
-        $targetUser = $this->userRepo->findById($userId);
-
-        if (! $targetUser) {
-            throw ValidationException::withMessages([
-                'user_id' => 'Pengguna tidak ditemukan.',
-            ]);
-        }
-
-        $userRoleValue = $targetUser->role instanceof PeranPengguna
-            ? $targetUser->role->value
-            : (string) $targetUser->role;
-
-        if ($userRoleValue !== PeranPengguna::WALI_MURID->value) {
-            throw ValidationException::withMessages([
-                'user_id' => 'Akun yang dipilih harus berstatus peran Wali Murid / Siswa.',
-            ]);
-        }
-
-        return DB::transaction(function () use ($siswa, $userId) {
-            return $this->siswaRepo->update($siswa, ['user_id' => $userId]);
+            return Siswa::create($dataSiswa);
         });
     }
 
-    public function hapus(Siswa $siswa): bool
+    public function perbarui(Siswa $siswa, array $data): Siswa
     {
-        return $this->siswaRepo->delete($siswa);
+        return DB::transaction(function () use ($siswa, $data) {
+            if (!empty($data['email'])) {
+                if ($siswa->user) {
+                    $updateData = [
+                        'name' => $data['nama_lengkap'],
+                        'email' => $data['email'],
+                    ];
+                    if (!empty($data['password'])) {
+                        $updateData['password'] = Hash::make($data['password']);
+                    }
+                    $siswa->user->update($updateData);
+                } else {
+                    $user = User::create([
+                        'name' => $data['nama_lengkap'],
+                        'email' => $data['email'],
+                        'password' => Hash::make($data['password'] ?? $data['nis']),
+                        'role' => PeranPengguna::SISWA->value,
+                        'is_active' => true,
+                    ]);
+                    $siswa->user_id = $user->id;
+                }
+            }
+
+            // Hapus email dan password sebelum update model siswa
+            $dataSiswa = Arr::except($data, ['email', 'password']);
+            if (isset($siswa->user_id)) {
+                $dataSiswa['user_id'] = $siswa->user_id;
+            }
+
+            $siswa->update($dataSiswa);
+            return $siswa;
+        });
+    }
+
+    public function hapus(Siswa $siswa): void
+    {
+        if ($siswa->tagihanSpp()->exists() || $siswa->transaksiSpp()->exists()) {
+            throw ValidationException::withMessages([
+                'error' => 'Data siswa tidak dapat dihapus karena sudah memiliki riwayat tagihan atau transaksi.',
+            ]);
+        }
+
+        DB::transaction(function () use ($siswa) {
+            $user = $siswa->user;
+            $siswa->delete();
+            if ($user) {
+                $user->delete();
+            }
+        });
+    }
+
+    public function perbaruiStatus(Siswa $siswa, string $status): void
+    {
+        $siswa->update(['status_siswa' => $status]);
     }
 }

@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\UserRequest;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
@@ -49,6 +50,7 @@ class UserController extends Controller
         try {
             $data = $request->validated();
             $data['password'] = Hash::make($data['password']);
+            $data['email_verified_at'] = now(); // Otomatis terverifikasi saat dibuat oleh Admin
 
             User::create($data);
 
@@ -114,6 +116,30 @@ class UserController extends Controller
             return back()->with('success', 'Kata sandi berhasil disetel ulang.');
         } catch (Throwable $th) {
             return back()->withErrors(['error' => 'Gagal mereset kata sandi: '.$th->getMessage()]);
+        }
+    }
+
+    public function destroy(User $user): RedirectResponse
+    {
+        // 1. Mencegah akun yang sedang login dihapus
+        if (auth()->id() === $user->id) {
+            return back()->withErrors(['error' => 'Anda tidak dapat menghapus akun yang sedang Anda gunakan saat ini.']);
+        }
+
+        try {
+            DB::transaction(function () use ($user) {
+                // Lepaskan relasi akun jika terhubung ke data siswa
+                if ($user->siswa()->exists()) {
+                    $user->siswa()->update(['user_id' => null]);
+                }
+
+                $user->delete();
+            });
+
+            return redirect()->route('admin.users.index')
+                ->with('success', 'Pengguna berhasil dihapus.');
+        } catch (Throwable $th) {
+            return back()->withErrors(['error' => 'Gagal menghapus pengguna: ' . $th->getMessage()]);
         }
     }
 }

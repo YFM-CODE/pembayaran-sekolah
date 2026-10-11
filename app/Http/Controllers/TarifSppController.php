@@ -9,6 +9,7 @@ use App\Handlers\TarifSpp\ProsesPersetujuanKomiteHandler;
 use App\Handlers\TarifSpp\SimpanTarifSppHandler;
 use App\Http\Requests\SimpanPersetujuanTarifRequest;
 use App\Interfaces\TarifSppInterface;
+use App\Models\TarifSpp;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -56,12 +57,21 @@ class TarifSppController extends Controller
         } catch (Throwable $th) {
             DB::rollBack();
 
-            return redirect()->back()->withErrors(['error' => 'Gagal menyimpan tarif: '.$th->getMessage()]);
+            return redirect()->back()->withErrors(['error' => 'Gagal menyimpan tarif: ' . $th->getMessage()]);
         }
     }
 
     public function update(Request $request, int $id): RedirectResponse
     {
+        // 1. Validasi proteksi Berita Acara Komite
+        $tarif = TarifSpp::with('persetujuanKomite')->findOrFail($id);
+
+        if ($tarif->persetujuanKomite?->status_persetujuan === 'disetujui') {
+            return redirect()->back()->withErrors([
+                'error' => 'Tarif SPP tidak dapat diubah karena telah disahkan melalui Berita Acara Komite.',
+            ]);
+        }
+
         $validated = $request->validate([
             'tahun_ajaran' => ['required', 'string', 'max:20'],
             'tingkat' => ['required', 'string', 'max:10'],
@@ -81,12 +91,28 @@ class TarifSppController extends Controller
         } catch (Throwable $th) {
             DB::rollBack();
 
-            return redirect()->back()->withErrors(['error' => 'Gagal memperbarui tarif: '.$th->getMessage()]);
+            return redirect()->back()->withErrors(['error' => 'Gagal memperbarui tarif: ' . $th->getMessage()]);
         }
     }
 
     public function destroy(int $id): RedirectResponse
     {
+        $tarif = TarifSpp::with(['persetujuanKomite', 'tagihan'])->findOrFail($id);
+
+        // 1. Cek proteksi Berita Acara
+        if ($tarif->persetujuanKomite?->status_persetujuan === 'disetujui') {
+            return redirect()->back()->withErrors([
+                'error' => 'Tarif SPP tidak dapat dihapus karena telah disahkan melalui Berita Acara Komite.',
+            ]);
+        }
+
+        // 2. Cek apakah tarif sudah digunakan oleh tagihan siswa
+        if ($tarif->tagihan()->exists()) {
+            return redirect()->back()->withErrors([
+                'error' => 'Tarif SPP tidak dapat dihapus karena sudah terbit tagihan untuk siswa.',
+            ]);
+        }
+
         DB::beginTransaction();
         try {
             $this->hapusHandler->handle($id);
@@ -99,7 +125,7 @@ class TarifSppController extends Controller
         } catch (Throwable $th) {
             DB::rollBack();
 
-            return redirect()->back()->withErrors(['error' => 'Gagal menghapus tarif: '.$th->getMessage()]);
+            return redirect()->back()->withErrors(['error' => 'Gagal menghapus tarif: ' . $th->getMessage()]);
         }
     }
 
@@ -122,7 +148,7 @@ class TarifSppController extends Controller
         } catch (Throwable $th) {
             DB::rollBack();
 
-            return redirect()->back()->withErrors(['error' => 'Gagal memproses persetujuan komite: '.$th->getMessage()]);
+            return redirect()->back()->withErrors(['error' => 'Gagal memproses persetujuan komite: ' . $th->getMessage()]);
         }
     }
 }

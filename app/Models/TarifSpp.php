@@ -6,6 +6,7 @@ use App\Traits\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class TarifSpp extends Model
 {
@@ -27,9 +28,20 @@ class TarifSpp extends Model
         ];
     }
 
-    public function persetujuanKomite(): HasMany
+    /**
+     * Ambil 1 data persetujuan komite yang paling baru (objek tunggal).
+     */
+    public function persetujuanKomite(): HasOne
     {
-        return $this->hasMany(PersetujuanTarifKomite::class);
+        return $this->hasOne(PersetujuanTarifKomite::class)->latestOfMany();
+    }
+
+    /**
+     * Riwayat seluruh persetujuan komite (jika butuh history penolakan/revisi).
+     */
+    public function riwayatPersetujuan(): HasMany
+    {
+        return $this->hasMany(PersetujuanTarifKomite::class)->latest();
     }
 
     public function tagihan(): HasMany
