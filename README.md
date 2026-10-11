@@ -1,4 +1,4 @@
-# school-management-system
+# pembayaran-sekolah
 
 Lisensi & Hak Cipta (Copyright)
 
