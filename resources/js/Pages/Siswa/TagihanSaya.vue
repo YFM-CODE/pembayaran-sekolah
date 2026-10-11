@@ -82,8 +82,14 @@ const formatWaktu = (isoStr) => {
     }
 };
 
+const getStatusValue = (item) => {
+    const raw = item?.status;
+    return typeof raw === 'object' && raw !== null ? raw.value : (raw || '');
+};
+
 const isJatuhTempoLewat = (tglStr, status) => {
-    if (!tglStr || status === 'lunas') return false;
+    const st = typeof status === 'object' && status !== null ? status.value : status;
+    if (!tglStr || st === 'lunas') return false;
     const tgl = new Date(tglStr);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -96,7 +102,7 @@ const searchQuery = ref('');
 
 // Total Ringkasan
 const totalTagihan = computed(() => {
-    return props.tagihan.reduce((acc, item) => acc + Number(item.nominal_tagihan ?? 0), 0);
+    return props.tagihan.reduce((acc, item) => acc + Number(item.nominal_tagihan ?? item.total_harus_bayar ?? 0), 0);
 });
 
 const totalTerbayar = computed(() => {
@@ -108,11 +114,11 @@ const totalSisaKewajiban = computed(() => {
 });
 
 const countLunas = computed(() => {
-    return props.tagihan.filter((item) => item.status === 'lunas').length;
+    return props.tagihan.filter((item) => getStatusValue(item) === 'lunas').length;
 });
 
 const countBelumLunas = computed(() => {
-    return props.tagihan.filter((item) => item.status !== 'lunas').length;
+    return props.tagihan.filter((item) => getStatusValue(item) !== 'lunas').length;
 });
 
 // Daftar tagihan yang difilter
@@ -121,9 +127,9 @@ const tagihanFiltered = computed(() => {
 
     // Filter status tab
     if (activeTab.value === 'belum_lunas') {
-        list = list.filter((item) => item.status !== 'lunas');
+        list = list.filter((item) => getStatusValue(item) !== 'lunas');
     } else if (activeTab.value === 'lunas') {
-        list = list.filter((item) => item.status === 'lunas');
+        list = list.filter((item) => getStatusValue(item) === 'lunas');
     }
 
     // Filter pencarian (bulan/tahun)
@@ -326,7 +332,7 @@ const tagihanFiltered = computed(() => {
                             <!-- Status Badge Konsisten -->
                             <!-- Lunas: Hijau -->
                             <span
-                                v-if="item.status === 'lunas'"
+                                v-if="getStatusValue(item) === 'lunas'"
                                 class="inline-flex items-center gap-1 rounded-full bg-status-success/15 px-2.5 py-0.5 text-xs font-bold text-status-success"
                             >
                                 <span class="h-1.5 w-1.5 rounded-full bg-status-success"></span>
@@ -334,7 +340,7 @@ const tagihanFiltered = computed(() => {
                             </span>
                             <!-- Sebagian: Kuning -->
                             <span
-                                v-else-if="item.status === 'sebagian'"
+                                v-else-if="['sebagian', 'belum_lunas'].includes(getStatusValue(item)) && item.total_terbayar > 0"
                                 class="inline-flex items-center gap-1 rounded-full bg-status-warning/15 px-2.5 py-0.5 text-xs font-bold text-status-warning"
                             >
                                 <span class="h-1.5 w-1.5 rounded-full bg-status-warning"></span>
@@ -347,6 +353,14 @@ const tagihanFiltered = computed(() => {
                             >
                                 <span class="h-1.5 w-1.5 rounded-full bg-status-danger"></span>
                                 Belum Bayar
+                            </span>
+
+                            <!-- Potongan / Keringanan badge -->
+                            <span
+                                v-if="(item.nominal_potongan && item.nominal_potongan > 0) || (item.potongan && item.potongan > 0)"
+                                class="inline-flex items-center rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-semibold text-brand"
+                            >
+                                Diskon/Keringanan: {{ rupiah(item.nominal_potongan || item.potongan) }}
                             </span>
 
                             <!-- Overdue badge -->
@@ -370,7 +384,7 @@ const tagihanFiltered = computed(() => {
                             <div>
                                 <span class="block text-[11px] uppercase tracking-wider text-ink-muted font-medium">Nominal Asli</span>
                                 <span class="mt-1 block text-sm font-semibold tabular-nums text-ink">
-                                    {{ rupiah(item.nominal_asli) }}
+                                    {{ rupiah(item.nominal_asli || item.nominal_tagihan) }}
                                 </span>
                                 <span v-if="item.tarif?.keterangan" class="text-[11px] text-ink-muted truncate block">
                                     {{ item.tarif.keterangan }}
@@ -381,7 +395,7 @@ const tagihanFiltered = computed(() => {
                             <div>
                                 <span class="block text-[11px] uppercase tracking-wider text-ink-muted font-medium">Potongan / Beasiswa</span>
                                 <span class="mt-1 block text-sm font-semibold tabular-nums text-brand">
-                                    {{ item.nominal_potongan > 0 ? '- ' + rupiah(item.nominal_potongan) : 'Rp 0' }}
+                                    {{ (item.nominal_potongan > 0 || item.potongan > 0) ? '- ' + rupiah(item.nominal_potongan || item.potongan) : 'Rp 0' }}
                                 </span>
                                 <span v-if="item.keringanan?.nama_program" class="text-[11px] text-brand font-medium truncate block">
                                     {{ item.keringanan.nama_program }}
@@ -392,7 +406,7 @@ const tagihanFiltered = computed(() => {
                             <div>
                                 <span class="block text-[11px] uppercase tracking-wider text-ink-muted font-medium">Total Tagihan</span>
                                 <span class="mt-1 block text-sm font-bold tabular-nums text-ink">
-                                    {{ rupiah(item.nominal_tagihan) }}
+                                    {{ rupiah(item.nominal_tagihan ?? item.total_harus_bayar) }}
                                 </span>
                                 <span class="text-[11px] text-ink-muted block">
                                     Terbayar: {{ rupiah(item.total_terbayar) }}
@@ -433,7 +447,7 @@ const tagihanFiltered = computed(() => {
                                 :key="disp.id"
                                 class="mt-1 text-ink-muted"
                             >
-                                Status: <strong class="capitalize text-ink">{{ disp.status.replace('_', ' ') }}</strong>
+                                Status: <strong class="capitalize text-ink">{{ (disp.status || '').replace('_', ' ') }}</strong>
                                 <span v-if="disp.batas_waktu_baru"> &bull; Jatuh tempo baru: <strong>{{ formatTanggal(disp.batas_waktu_baru) }}</strong></span>
                                 <span v-if="disp.alasan_penundaan"> &bull; Alasan: "{{ disp.alasan_penundaan }}"</span>
                             </div>

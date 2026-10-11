@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\StatusDispensasi;
 use App\Traits\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,26 +15,34 @@ class DispensasiSpp extends Model
 
     protected $fillable = [
         'tagihan_spp_id',
+        'pemohon_id',
         'disetujui_oleh',
-        'tanggal_perjanjian',
+        'tanggal_pengajuan',
         'batas_waktu_baru',
         'alasan_penundaan',
         'dokumen_pendukung',
-        'status_pengajuan',
+        'status',
+        'catatan_pimpinan',
+        'tanggal_diproses',
     ];
 
     protected function casts(): array
     {
         return [
-            'tanggal_perjanjian' => 'date',
+            'tanggal_pengajuan' => 'date',
             'batas_waktu_baru' => 'date',
-            'status_pengajuan' => StatusDispensasi::class,
+            'tanggal_diproses' => 'datetime',
         ];
     }
 
     public function tagihan(): BelongsTo
     {
         return $this->belongsTo(TagihanSpp::class, 'tagihan_spp_id');
+    }
+
+    public function pemohon(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'pemohon_id');
     }
 
     public function kepalaSekolah(): BelongsTo

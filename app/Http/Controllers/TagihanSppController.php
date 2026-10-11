@@ -58,13 +58,12 @@ class TagihanSppController extends Controller
             'jatuh_tempo' => ['required', 'date'],
         ]);
 
-        // Ambil tarif tahun ajaran terkait yang SUDAH DISETUJUI oleh Komite
+        // 1. Ambil tarif yang sudah DISETUJUI oleh Komite
         $tarifDisetujui = TarifSpp::where('tahun_ajaran', $validated['tahun_ajaran'])
             ->whereHas('persetujuanKomite', function ($q) {
                 $q->where('status_persetujuan', 'disetujui');
             })
-            ->get()
-            ->keyBy('tingkat');
+            ->get();
 
         if ($tarifDisetujui->isEmpty()) {
             return redirect()->back()->withErrors([
@@ -74,36 +73,77 @@ class TagihanSppController extends Controller
 
         DB::beginTransaction();
         try {
-            $daftarSiswa = Siswa::with(['kelas', 'keringanan'])->where('status_aktif', true)->get();
+            // Gunakan status_siswa = 'aktif' sesuai skema migrasi tabel siswa
+            $daftarSiswa = Siswa::with(['kelas', 'keringanan.keringanan'])
+                ->where('status_siswa', 'aktif')
+                ->get();
 
             $totalDibuat = 0;
             $totalDilewati = 0;
 
             foreach ($daftarSiswa as $siswa) {
-                $tingkat = $siswa->kelas?->tingkat;
+                $tingkatRaw = $siswa->kelas?->tingkat;
 
-                // Lewati siswa jika tarif tingkatnya belum disetujui komite
-                if (! $tingkat || ! $tarifDisetujui->has($tingkat)) {
+                if (! $tingkatRaw) {
                     $totalDilewati++;
 
                     continue;
                 }
 
-                // Cek apakah tagihan bulan & tahun tersebut sudah pernah digenerate
+                // Normalisasi tingkat agar cocok antara 'X' <-> '10', 'XI' <-> '11', 'XII' <-> '12'
+                $tarif = $tarifDisetujui->first(function ($t) use ($tingkatRaw) {
+                    $tTingkat = trim(str_ireplace('kelas', '', (string) $t->tingkat));
+                    $sTingkat = trim(str_ireplace('kelas', '', (string) $tingkatRaw));
+
+                    if ($tTingkat === $sTingkat) {
+                        return true;
+                    }
+                    if (in_array($tTingkat, ['10', 'X']) && in_array($sTingkat, ['10', 'X'])) {
+                        return true;
+                    }
+                    if (in_array($tTingkat, ['11', 'XI']) && in_array($sTingkat, ['11', 'XI'])) {
+                        return true;
+                    }
+                    if (in_array($tTingkat, ['12', 'XII']) && in_array($sTingkat, ['12', 'XII'])) {
+                        return true;
+                    }
+
+                    return false;
+                });
+
+                // Lewati jika tarif untuk tingkat siswa belum disetujui Komite
+                if (! $tarif) {
+                    $totalDilewati++;
+
+                    continue;
+                }
+
+                // Cek apakah tagihan bulan & tahun tersebut sudah ada
                 if ($this->tagihanRepo->cekTagihanAda($siswa->id, $validated['bulan'], $validated['tahun'])) {
                     continue;
                 }
 
-                $tarif = $tarifDisetujui->get($tingkat);
                 $nominalAsli = $tarif->nominal_standar;
                 $potongan = 0;
                 $keringananSppId = null;
 
-                if ($siswa->keringanan && $siswa->keringanan->aktif) {
-                    $keringananSppId = $siswa->keringanan->id;
-                    $potongan = $siswa->keringanan->tipe_potongan === 'persen'
-                        ? ($nominalAsli * ($siswa->keringanan->nilai_potongan / 100))
-                        : $siswa->keringanan->nilai_potongan;
+                // Ambil data penetapan SK keringanan siswa pada tahun ajaran terkait
+                $penetapanKeringanan = $siswa->keringanan
+                    ->where('tahun_ajaran', $validated['tahun_ajaran'])
+                    ->where('aktif', true)
+                    ->first();
+
+                if ($penetapanKeringanan && $penetapanKeringanan->keringanan && $penetapanKeringanan->keringanan->aktif) {
+                    $program = $penetapanKeringanan->keringanan;
+                    $keringananSppId = $program->id;
+
+                    $tipe = is_object($program->tipe_potongan) ? $program->tipe_potongan->value : $program->tipe_potongan;
+
+                    if ($tipe === 'persentase') {
+                        $potongan = $nominalAsli * ($program->nilai_potongan / 100);
+                    } else {
+                        $potongan = $program->nilai_potongan;
+                    }
                 }
 
                 $nominalTagihan = max(0, $nominalAsli - $potongan);
@@ -128,9 +168,15 @@ class TagihanSppController extends Controller
 
             DB::commit();
 
+            if ($totalDibuat === 0) {
+                return redirect()->back()->withErrors([
+                    'error' => 'Tidak ada tagihan baru yang dibuat. Kemungkinan tagihan untuk periode ini sudah pernah digenerate sebelumnya atau kelas siswa belum disahkan Komite.',
+                ]);
+            }
+
             $pesan = "Berhasil membuat {$totalDibuat} tagihan SPP.";
             if ($totalDilewati > 0) {
-                $pesan .= " Sebanyak {$totalDilewati} siswa dilewati karena tarif tingkat kelasnya belum disetujui Komite.";
+                $pesan .= " Sebanyak {$totalDilewati} siswa dilewati karena tarif kelasnya belum disetujui Komite.";
             }
 
             return redirect()->back()->with('success', $pesan);

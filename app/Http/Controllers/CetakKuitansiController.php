@@ -3,22 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Enums\PeranPengguna;
-use App\Interfaces\TransaksiSppInterface;
+use App\Models\TransaksiSpp;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
 class CetakKuitansiController extends Controller
 {
-    public function __construct(
-        protected TransaksiSppInterface $transaksiRepo
-    ) {}
-
-    public function kuitansi(Request $request, int $transaksiSpp)
+    /**
+     * Kuitansi Dokumen Formal (Print Browser atau Download PDF Asli)
+     */
+    public function kuitansi(Request $request, TransaksiSpp $transaksiSpp)
     {
-        $transaksi = $this->transaksiRepo->cariBerdasarkanId($transaksiSpp);
-
-        if (! $transaksi) {
-            abort(404, 'Data transaksi SPP tidak ditemukan.');
-        }
+        $transaksi = $transaksiSpp->load([
+            'tagihan.siswa.kelas',
+            'petugas',
+        ]);
 
         $user = $request->user();
         $roleValue = is_object($user->role) ? $user->role->value : (string) $user->role;
@@ -30,36 +29,32 @@ class CetakKuitansiController extends Controller
             }
         }
 
-        $tagihan = $transaksi->tagihan;
-        $siswa = $tagihan?->siswa;
+        // Aksi Download Langsung File PDF
+        if ($request->query('action') === 'download') {
+            $pdf = Pdf::loadView('cetak.kuitansi-pdf', [
+                'transaksi' => $transaksi,
+                'isPdfDownload' => true,
+            ])->setPaper('a5', 'landscape');
 
-        $data = [
+            return $pdf->download('Kuitansi-'.($transaksi->nomor_kuitansi ?? $transaksi->id).'.pdf');
+        }
+
+        // Tampilan Cetak Layar Browser
+        return view('cetak.kuitansi-pdf', [
             'transaksi' => $transaksi,
-            'nomor_kuitansi' => $transaksi->nomor_kuitansi ?? ('#TRX-'.$transaksi->id),
-            'nomor_transaksi' => $transaksi->nomor_kuitansi ?? ('#TRX-'.$transaksi->id),
-            'nama_siswa' => $siswa?->nama_lengkap ?? 'Siswa',
-            'nis' => $siswa?->nis ?? '-',
-            'nisn' => $siswa?->nisn ?? '-',
-            'kelas' => $siswa?->kelas?->nama_kelas ?? '-',
-            'periode' => 'Bulan '.($tagihan?->bulan ?? '-').' / Tahun '.($tagihan?->tahun ?? '-'),
-            'jumlah_dibayar' => (float) $transaksi->jumlah_dibayar,
-            'metode' => $transaksi->metode_pembayaran,
-            'petugas' => $transaksi->petugas?->name ?? 'Kasir Loket TU',
-            'tanggal_bayar' => $transaksi->waktu_transaksi?->translatedFormat('d F Y H:i') ?? $transaksi->created_at?->translatedFormat('d F Y H:i'),
-            'sisa_tagihan' => max(0, (float) ($tagihan?->sisa_tagihan ?? 0)),
-            'catatan' => $transaksi->catatan,
-        ];
-
-        return view('exports.pdf.kuitansi-spp', $data);
+            'isPdfDownload' => false,
+        ]);
     }
 
-    public function thermal(Request $request, int $transaksiSpp)
+    /**
+     * Struk Thermal Kasir
+     */
+    public function thermal(Request $request, TransaksiSpp $transaksiSpp)
     {
-        $transaksi = $this->transaksiRepo->cariBerdasarkanId($transaksiSpp);
-
-        if (! $transaksi) {
-            abort(404, 'Data transaksi SPP tidak ditemukan.');
-        }
+        $transaksi = $transaksiSpp->load([
+            'tagihan.siswa.kelas',
+            'petugas',
+        ]);
 
         $user = $request->user();
         $roleValue = is_object($user->role) ? $user->role->value : (string) $user->role;
@@ -71,24 +66,6 @@ class CetakKuitansiController extends Controller
             }
         }
 
-        $tagihan = $transaksi->tagihan;
-        $siswa = $tagihan?->siswa;
-
-        $data = [
-            'transaksi' => $transaksi,
-            'nomor_kuitansi' => $transaksi->nomor_kuitansi ?? ('#TRX-'.$transaksi->id),
-            'nomor_transaksi' => $transaksi->nomor_kuitansi ?? ('#TRX-'.$transaksi->id),
-            'nama_siswa' => $siswa?->nama_lengkap ?? 'Siswa',
-            'nis' => $siswa?->nis ?? '-',
-            'kelas' => $siswa?->kelas?->nama_kelas ?? '-',
-            'periode' => 'Bulan '.($tagihan?->bulan ?? '-').' / Tahun '.($tagihan?->tahun ?? '-'),
-            'jumlah_dibayar' => (float) $transaksi->jumlah_dibayar,
-            'metode' => $transaksi->metode_pembayaran,
-            'petugas' => $transaksi->petugas?->name ?? 'Kasir Loket TU',
-            'tanggal_bayar' => $transaksi->waktu_transaksi?->translatedFormat('d F Y H:i') ?? $transaksi->created_at?->translatedFormat('d F Y H:i'),
-            'sisa_tagihan' => max(0, (float) ($tagihan?->sisa_tagihan ?? 0)),
-        ];
-
-        return view('exports.thermal.struk-kasir', $data);
+        return view('cetak.thermal', compact('transaksi'));
     }
 }

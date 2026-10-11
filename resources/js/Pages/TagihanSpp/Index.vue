@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue';
-import { Head, useForm, router } from '@inertiajs/vue3';
+import { Head, useForm, router, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 
 const props = defineProps({
@@ -9,8 +9,9 @@ const props = defineProps({
     auth: Object,
 });
 
-const search = ref(props.filters.search || '');
-const status = ref(props.filters.status || '');
+const page = usePage();
+const search = ref(props.filters?.search || '');
+const status = ref(props.filters?.status || '');
 const isGenerateModalOpen = ref(false);
 
 const generateForm = useForm({
@@ -28,13 +29,22 @@ watch([search, status], ([sVal, stVal]) => {
     );
 });
 
+// Deteksi rute secara dinamis (admin vs bendahara)
 const submitGenerate = () => {
-    generateForm.post(route('admin.tagihan-spp.generate-bulanan'), {
-        onSuccess: () => (isGenerateModalOpen.value = false),
+    const role = page.props.auth?.user?.role;
+    const targetRoute = role === 'bendahara'
+        ? 'bendahara.tagihan-spp.generate-bulanan'
+        : 'admin.tagihan-spp.generate-bulanan';
+
+    generateForm.post(route(targetRoute), {
+        preserveScroll: true,
+        onSuccess: () => {
+            isGenerateModalOpen.value = false;
+        },
     });
 };
 
-const formatRupiah = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
+const formatRupiah = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
 </script>
 
 <template>
@@ -48,7 +58,7 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID', { style: 'currency'
                     <p class="text-xs text-ink-muted sm:text-sm mt-0.5">Pantau status kewajiban tagihan bulanan siswa dan terbitkan tagihan periode berjalan.</p>
                 </div>
                 <button
-                    v-if="['admin', 'bendahara'].includes(props.auth?.user?.role)"
+                    v-if="['admin', 'bendahara'].includes(page.props.auth?.user?.role)"
                     @click="isGenerateModalOpen = true"
                     class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus"
                 >
@@ -77,8 +87,8 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID', { style: 'currency'
                         class="w-full rounded-lg border border-brand-border bg-white px-3 py-2 text-sm text-ink shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-focus"
                     >
                         <option value="">Semua Status Tagihan</option>
-                        <option value="belum_lunas">Belum Lunas</option>
-                        <option value="sebagian">Sebagian</option>
+                        <option value="belum_bayar">Belum Bayar</option>
+                        <option value="belum_lunas">Belum Lunas / Sebagian</option>
                         <option value="lunas">Lunas</option>
                     </select>
                 </div>
@@ -90,9 +100,10 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID', { style: 'currency'
                     <table class="min-w-full divide-y divide-brand-border text-sm">
                         <thead class="bg-brand-soft text-left text-xs uppercase tracking-wide text-ink">
                             <tr>
-                                <th scope="col" class="px-5 py-3 font-semibold">No. Tagihan</th>
                                 <th scope="col" class="px-5 py-3 font-semibold">Identitas Siswa</th>
                                 <th scope="col" class="px-5 py-3 font-semibold">Periode SPP</th>
+                                <th scope="col" class="px-5 py-3 text-right font-semibold">Nominal Asli</th>
+                                <th scope="col" class="px-5 py-3 text-right font-semibold">Potongan</th>
                                 <th scope="col" class="px-5 py-3 text-right font-semibold">Total Tagihan</th>
                                 <th scope="col" class="px-5 py-3 text-right font-semibold">Sisa Tagihan</th>
                                 <th scope="col" class="px-5 py-3 text-center font-semibold">Status</th>
@@ -100,22 +111,25 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID', { style: 'currency'
                         </thead>
                         <tbody class="divide-y divide-brand-border">
                             <tr
-                                v-for="item in props.tagihan.data"
+                                v-for="item in (props.tagihan?.data || props.tagihan || [])"
                                 :key="item.id"
                                 class="odd:bg-white even:bg-page/50 transition-colors hover:bg-brand-soft/40"
                             >
-                                <td class="whitespace-nowrap px-5 py-3.5 font-mono text-xs font-semibold text-brand">
-                                    {{ item.nomor_tagihan }}
-                                </td>
                                 <td class="whitespace-nowrap px-5 py-3.5">
                                     <span class="block font-semibold text-ink">{{ item.siswa?.nama_lengkap }}</span>
-                                    <span class="block text-xs text-ink-muted">NIS: {{ item.siswa?.nis }} &middot; {{ item.siswa?.kelas?.nama_kelas || '-' }}</span>
+                                    <span class="block text-xs text-ink-muted">NIS: {{ item.siswa?.nis }} &middot; {{ item.siswa?.kelas ? `${item.siswa?.kelas?.tingkat || ''} ${item.siswa?.kelas?.nama_kelas || ''}`.trim() : '-' }}</span>
                                 </td>
                                 <td class="whitespace-nowrap px-5 py-3.5 text-ink-muted">
                                     Bulan {{ item.bulan }} / {{ item.tahun }}
                                 </td>
                                 <td class="whitespace-nowrap px-5 py-3.5 text-right font-semibold tabular-nums text-ink">
-                                    {{ formatRupiah(item.total_harus_bayar) }}
+                                    {{ formatRupiah(item.nominal_asli || item.nominal_tagihan) }}
+                                </td>
+                                <td class="whitespace-nowrap px-5 py-3.5 text-right font-semibold tabular-nums text-status-success">
+                                    {{ item.nominal_potongan > 0 ? `-${formatRupiah(item.nominal_potongan)}` : (item.potongan > 0 ? `-${formatRupiah(item.potongan)}` : '-') }}
+                                </td>
+                                <td class="whitespace-nowrap px-5 py-3.5 text-right font-semibold tabular-nums text-ink">
+                                    {{ formatRupiah(item.nominal_tagihan ?? item.total_harus_bayar) }}
                                 </td>
                                 <td class="whitespace-nowrap px-5 py-3.5 text-right font-bold tabular-nums text-status-danger">
                                     {{ formatRupiah(item.sisa_tagihan) }}
@@ -124,18 +138,18 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID', { style: 'currency'
                                     <span
                                         :class="{
                                             'bg-status-success/15 text-status-success': item.status === 'lunas',
-                                            'bg-status-warning/15 text-status-warning': item.status === 'sebagian',
-                                            'bg-status-danger/15 text-status-danger': item.status === 'belum_lunas'
+                                            'bg-status-warning/15 text-status-warning': ['sebagian', 'belum_lunas'].includes(item.status),
+                                            'bg-status-danger/15 text-status-danger': ['belum_bayar', 'menunggu_pembayaran'].includes(item.status)
                                         }"
                                         class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize"
                                     >
-                                        {{ item.status.replace('_', ' ') }}
+                                        {{ (item.status || '').replace('_', ' ') }}
                                     </span>
                                 </td>
                             </tr>
 
-                            <tr v-if="!props.tagihan.data || props.tagihan.data.length === 0">
-                                <td colspan="6" class="px-5 py-8 text-center text-ink-muted">
+                            <tr v-if="!(props.tagihan?.data?.length || props.tagihan?.length)">
+                                <td colspan="7" class="px-5 py-8 text-center text-ink-muted">
                                     Tidak ada data tagihan yang sesuai dengan filter.
                                 </td>
                             </tr>
@@ -206,7 +220,7 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID', { style: 'currency'
                             :disabled="generateForm.processing"
                             class="rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus disabled:opacity-50"
                         >
-                            Mulai Generate
+                            {{ generateForm.processing ? 'Memproses...' : 'Mulai Generate' }}
                         </button>
                     </div>
                 </form>
