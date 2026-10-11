@@ -3,11 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Filters\GlobalFilter;
-use App\Interfaces\KeringananSppInterface;
+use App\Http\Requests\Keringanan\SimpanProgramKeringananRequest;
+use App\Http\Requests\Keringanan\TetapkanKeringananSiswaRequest;
+use App\Models\Kelas;
+use App\Models\KeringananSpp;
 use App\Models\Siswa;
+use App\Models\TarifSpp;
+use App\Services\KeringananSppService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 use Throwable;
@@ -15,96 +19,97 @@ use Throwable;
 class KeringananSppController extends Controller
 {
     public function __construct(
-        protected KeringananSppInterface $keringananRepo
+        protected KeringananSppService $keringananService
     ) {}
 
-    public function index(GlobalFilter $filter): Response
+    public function index(Request $request, GlobalFilter $filter): Response
     {
+        // Default tahun ajaran aktif diambil dari usulan tarif terbaru atau tahun ajaran aktif
+        $tahunAjaranAktif = $request->input(
+            'tahun_ajaran',
+            TarifSpp::latest('tahun_ajaran')->value('tahun_ajaran') ?? '2026/2027'
+        );
+
+        // 1. Data Program Keringanan
+        $programList = KeringananSpp::withCount('penerima')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // 2. Data Siswa Penerima Keringanan
+        $siswaQuery = Siswa::with([
+            'kelas',
+            'keringanan' => function ($q) use ($tahunAjaranAktif) {
+                $q->where('tahun_ajaran', $tahunAjaranAktif)->with('keringanan');
+            },
+        ])->where('status_siswa', 'aktif');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $siswaQuery->where(function ($q) use ($search) {
+                $q->where('nama_lengkap', 'like', "%{$search}%")
+                  ->orWhere('nis', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('kelas_id')) {
+            $siswaQuery->where('kelas_id', $request->kelas_id);
+        }
+
+        $daftarSiswa = $siswaQuery->orderBy('nama_lengkap')
+            ->paginate(15)
+            ->withQueryString();
+
         return Inertia::render('KeringananSpp/Index', [
-            'keringanan' => $this->keringananRepo->paginate($filter),
-            'filters' => request()->all(['search']),
+            'programList'      => $programList,
+            'daftarSiswa'      => $daftarSiswa,
+            'listKelas'        => Kelas::select('id', 'tingkat', 'nama_kelas')->get(),
+            'listTahunAjaran'  => TarifSpp::select('tahun_ajaran')->distinct()->pluck('tahun_ajaran'),
+            'tahunAjaranAktif' => $tahunAjaranAktif,
+            'filters'          => $request->only(['search', 'kelas_id', 'tahun_ajaran']),
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(SimpanProgramKeringananRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'nama_program' => ['required', 'string', 'max:100'],
-            'tipe_potongan' => ['required', 'in:persen,nominal'],
-            'nilai_potongan' => ['required', 'numeric', 'min:1'],
-            'syarat_ketentuan' => ['nullable', 'string', 'max:1000'],
-            'aktif' => ['boolean'],
-        ]);
-
-        DB::beginTransaction();
         try {
-            $this->keringananRepo->simpan($validated);
-            DB::commit();
+            $this->keringananService->simpanProgram($request->validated());
 
-            return redirect()->back()->with('success', 'Program keringanan SPP berhasil dibuat.');
+            return back()->with('success', 'Program keringanan berhasil dibuat.');
         } catch (Throwable $th) {
-            DB::rollBack();
-
-            return redirect()->back()->withErrors(['error' => 'Gagal membuat program keringanan: '.$th->getMessage()]);
+            return back()->withErrors(['error' => 'Gagal membuat program: ' . $th->getMessage()]);
         }
     }
 
-    public function update(Request $request, int $id): RedirectResponse
+    public function update(SimpanProgramKeringananRequest $request, KeringananSpp $keringananSpp): RedirectResponse
     {
-        $validated = $request->validate([
-            'nama_program' => ['required', 'string', 'max:100'],
-            'tipe_potongan' => ['required', 'in:persen,nominal'],
-            'nilai_potongan' => ['required', 'numeric', 'min:1'],
-            'syarat_ketentuan' => ['nullable', 'string', 'max:1000'],
-            'aktif' => ['boolean'],
-        ]);
-
-        DB::beginTransaction();
         try {
-            $this->keringananRepo->perbarui($id, $validated);
-            DB::commit();
+            $this->keringananService->perbaruiProgram($keringananSpp, $request->validated());
 
-            return redirect()->back()->with('success', 'Program keringanan SPP berhasil diperbarui.');
+            return back()->with('success', 'Program keringanan berhasil diperbarui.');
         } catch (Throwable $th) {
-            DB::rollBack();
-
-            return redirect()->back()->withErrors(['error' => 'Gagal memperbarui program keringanan: '.$th->getMessage()]);
+            return back()->withErrors(['error' => 'Gagal memperbarui program: ' . $th->getMessage()]);
         }
     }
 
-    public function destroy(int $id): RedirectResponse
+    public function destroy(KeringananSpp $keringananSpp): RedirectResponse
     {
-        DB::beginTransaction();
         try {
-            $this->keringananRepo->hapus($id);
-            DB::commit();
+            $this->keringananService->hapusProgram($keringananSpp);
 
-            return redirect()->back()->with('success', 'Program keringanan berhasil dihapus.');
+            return back()->with('success', 'Program keringanan berhasil dihapus.');
         } catch (Throwable $th) {
-            DB::rollBack();
-
-            return redirect()->back()->withErrors(['error' => 'Gagal menghapus program keringanan: '.$th->getMessage()]);
+            return back()->withErrors(['error' => $th->getMessage()]);
         }
     }
 
-    public function tetapkanSiswa(Request $request): RedirectResponse
+    public function tetapkanSiswa(TetapkanKeringananSiswaRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'siswa_id' => ['required', 'exists:siswa,id'],
-            'keringanan_spp_id' => ['nullable', 'exists:keringanan_spp,id'],
-        ]);
-
-        DB::beginTransaction();
         try {
-            $siswa = Siswa::findOrFail($validated['siswa_id']);
-            $siswa->update(['keringanan_spp_id' => $validated['keringanan_spp_id']]);
-            DB::commit();
+            $this->keringananService->tetapkanSiswa($request->validated());
 
-            return redirect()->back()->with('success', 'Status keringanan siswa berhasil diperbarui.');
+            return back()->with('success', 'Penetapan SK keringanan siswa berhasil diperbarui.');
         } catch (Throwable $th) {
-            DB::rollBack();
-
-            return redirect()->back()->withErrors(['error' => 'Gagal menetapkan keringanan ke siswa: '.$th->getMessage()]);
+            return back()->withErrors(['error' => 'Gagal menetapkan keringanan ke siswa: ' . $th->getMessage()]);
         }
     }
 }

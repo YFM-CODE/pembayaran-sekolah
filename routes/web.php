@@ -8,6 +8,8 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\CetakKuitansiController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DispensasiSppController;
+use App\Http\Controllers\KepalaSekolah\DashboardKepsekController;
+use App\Http\Controllers\KepalaSekolah\LaporanEksekutifController;
 use App\Http\Controllers\KeringananSppController;
 use App\Http\Controllers\Komite\PersetujuanTarifController;
 use App\Http\Controllers\PembayaranSppController;
@@ -77,6 +79,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 
 Route::middleware(['auth', 'role:bendahara'])->prefix('bendahara')->name('bendahara.')->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::resource('keringanan-spp', KeringananSppController::class);
+    Route::post('/keringanan-spp/tetapkan-siswa', [KeringananSppController::class, 'tetapkanSiswa'])->name('keringanan-spp.tetapkan-siswa');
     Route::get('/setoran-kasir', [SetoranKasirController::class, 'index'])->name('setoran-kasir.index');
     Route::post('/setoran-kasir/{setoranKasir}/verifikasi', [SetoranKasirController::class, 'verifikasi'])->name('setoran-kasir.verifikasi');
     Route::get('/tagihan-spp', [TagihanSppController::class, 'index'])->name('tagihan-spp.index');
@@ -95,11 +99,22 @@ Route::middleware(['auth', 'role:staf_tu'])->prefix('tu')->name('tu.')->group(fu
 });
 
 Route::middleware(['auth', 'role:kepala_sekolah'])->prefix('kepsek')->name('kepsek.')->group(function () {
-    Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    // Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    // 1. Dashboard Eksekutif
+    Route::get('/dashboard', [DashboardKepsekController::class, 'index'])->name('dashboard');
     Route::get('/dispensasi-spp', [DispensasiSppController::class, 'index'])->name('dispensasi-spp.index');
     Route::patch('/dispensasi-spp/{dispensasiSpp}/persetujuan', [DispensasiSppController::class, 'persetujuan'])->name('dispensasi-spp.persetujuan');
     Route::get('/keringanan-spp', [KeringananSppController::class, 'index'])->name('keringanan-spp.index');
     Route::get('/laporan-spp', [TagihanSppController::class, 'index'])->name('laporan-spp.index');
+
+    // 2. Persetujuan Dispensasi SPP
+    // Route::get('/dispensasi-spp', [DispensasiSppController::class, 'index'])->name('dispensasi-spp.index');
+    // Route::patch('/dispensasi-spp/{dispensasiSpp}/persetujuan', [DispensasiSppController::class, 'persetujuan'])
+    //     ->name('dispensasi-spp.persetujuan');
+
+    // 3. Monitoring & Laporan Eksekutif
+    Route::get('/laporan', [LaporanEksekutifController::class, 'index'])->name('laporan.index');
+    Route::get('/laporan/cetak', [LaporanEksekutifController::class, 'cetak'])->name('laporan.cetak');
 });
 
 Route::middleware(['auth', 'role:komite_sekolah'])->prefix('komite')->name('komite.')->group(function () {
@@ -123,4 +138,4 @@ Route::middleware('auth')->prefix('cetak-kuitansi')->name('cetak-kuitansi.')->gr
     Route::get('/{transaksiSpp}/kuitansi', [CetakKuitansiController::class, 'kuitansi'])->name('kuitansi');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

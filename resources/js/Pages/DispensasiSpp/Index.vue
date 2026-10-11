@@ -1,16 +1,26 @@
 <script setup>
-import { ref } from 'vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { Head, useForm, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 
 const props = defineProps({
     dispensasi: Object,
+    daftarSiswaTagihan: Array,
     auth: Object,
+});
+
+const page = usePage();
+
+// Evaluasi role secara aman (mendukung bentuk String maupun Enum Object)
+const userRole = computed(() => {
+    const r = page.props.auth?.user?.role;
+    return typeof r === 'object' && r !== null ? r.value : r;
 });
 
 const isModalAjukanOpen = ref(false);
 const isModalPersetujuanOpen = ref(false);
 const selectedDispensasi = ref(null);
+const selectedSiswaId = ref('');
 
 const formAjukan = useForm({
     tagihan_spp_id: '',
@@ -24,23 +34,56 @@ const formPersetujuan = useForm({
     catatan_pimpinan: '',
 });
 
+// Daftar tagihan milik siswa yang sedang dipilih di form modal
+const daftarTagihanTersedia = computed(() => {
+    if (!selectedSiswaId.value) return [];
+    const siswa = props.daftarSiswaTagihan?.find(s => Number(s.id) === Number(selectedSiswaId.value));
+    return siswa ? siswa.tagihan : [];
+});
+
+const onSiswaChange = () => {
+    formAjukan.tagihan_spp_id = '';
+};
+
+const openModalAjukan = () => {
+    formAjukan.reset();
+    formAjukan.clearErrors();
+    selectedSiswaId.value = '';
+    isModalAjukanOpen.value = true;
+};
+
 const submitAjukan = () => {
     formAjukan.post(route('tu.dispensasi-spp.store'), {
-        onSuccess: () => (isModalAjukanOpen.value = false),
+        forceFormData: true,
+        preserveScroll: true,
+        onSuccess: () => {
+            isModalAjukanOpen.value = false;
+            formAjukan.reset();
+            selectedSiswaId.value = '';
+        },
     });
 };
 
 const openModalPersetujuan = (item) => {
     selectedDispensasi.value = item;
     formPersetujuan.reset();
+    formPersetujuan.clearErrors();
+    formPersetujuan.status = 'disetujui';
     isModalPersetujuanOpen.value = true;
 };
 
 const submitPersetujuan = () => {
     formPersetujuan.patch(route('kepsek.dispensasi-spp.persetujuan', selectedDispensasi.value.id), {
-        onSuccess: () => (isModalPersetujuanOpen.value = false),
+        preserveScroll: true,
+        onSuccess: () => {
+            isModalPersetujuanOpen.value = false;
+            formPersetujuan.reset();
+            selectedDispensasi.value = null;
+        },
     });
 };
+
+const formatRupiah = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
 </script>
 
 <template>
@@ -49,65 +92,89 @@ const submitPersetujuan = () => {
     <AuthenticatedLayout>
         <template #header>
             <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold leading-tight text-gray-800">Dispensasi Pembayaran SPP</h2>
+                <div>
+                    <h2 class="text-xl font-bold leading-tight text-gray-900">Dispensasi Pembayaran SPP</h2>
+                    <p class="text-xs text-gray-500 mt-0.5">Pengajuan perpanjangan tenggat jatuh tempo SPP bagi siswa</p>
+                </div>
                 <button
-                    v-if="props.auth.user.role === 'staf_tu'"
-                    @click="isModalAjukanOpen = true"
-                    class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                    v-if="userRole === 'staf_tu'"
+                    @click="openModalAjukan"
+                    class="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 transition"
                 >
                     + Ajukan Dispensasi
                 </button>
             </div>
         </template>
 
-        <div class="py-12">
+        <div class="py-8">
             <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                <div class="overflow-hidden bg-white shadow-sm sm:rounded-xl border border-gray-100">
                     <div class="p-6">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Siswa</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Tagihan</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Batas Waktu Baru</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Alasan</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Status</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium uppercase text-gray-500">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200 bg-white">
-                                <tr v-for="item in props.dispensasi.data" :key="item.id">
-                                    <td class="whitespace-nowrap px-6 py-4">
-                                        <div class="font-medium text-gray-900">{{ item.tagihan?.siswa?.nama_lengkap }}</div>
-                                        <div class="text-xs text-gray-500">{{ item.tagihan?.siswa?.nis }}</div>
-                                    </td>
-                                    <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-600">Bulan {{ item.tagihan?.bulan }}/{{ item.tagihan?.tahun }}</td>
-                                    <td class="whitespace-nowrap px-6 py-4 font-semibold text-rose-600">{{ item.batas_waktu_baru }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-700">{{ item.alasan_penundaan }}</td>
-                                    <td class="whitespace-nowrap px-6 py-4">
-                                        <span
-                                            :class="{
-                                                'bg-green-100 text-green-800': item.status === 'disetujui',
-                                                'bg-amber-100 text-amber-800': item.status === 'menunggu_persetujuan',
-                                                'bg-red-100 text-red-800': item.status === 'ditolak'
-                                            }"
-                                            class="rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize"
-                                        >
-                                            {{ item.status.replace('_', ' ') }}
-                                        </span>
-                                    </td>
-                                    <td class="whitespace-nowrap px-6 py-4 text-right text-sm">
-                                        <button
-                                            v-if="props.auth.user.role === 'kepala_sekolah' && item.status === 'menunggu_persetujuan'"
-                                            @click="openModalPersetujuan(item)"
-                                            class="font-semibold text-indigo-600 hover:text-indigo-900"
-                                        >
-                                            Proses Persetujuan
-                                        </button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-100 text-left text-sm">
+                                <thead class="bg-gray-50 text-xs font-semibold uppercase text-gray-500">
+                                    <tr>
+                                        <th class="px-5 py-3">Siswa</th>
+                                        <th class="px-5 py-3">Tagihan</th>
+                                        <th class="px-5 py-3">Tenggat Baru</th>
+                                        <th class="px-5 py-3">Alasan</th>
+                                        <th class="px-5 py-3">Bukti Dokumen</th>
+                                        <th class="px-5 py-3 text-center">Status</th>
+                                        <th class="px-5 py-3 text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 bg-white">
+                                    <tr v-for="item in props.dispensasi?.data" :key="item.id" class="hover:bg-gray-50/70 transition">
+                                        <td class="whitespace-nowrap px-5 py-3.5">
+                                            <div class="font-medium text-gray-900">{{ item.tagihan?.siswa?.nama_lengkap }}</div>
+                                            <div class="text-xs text-gray-500 font-mono">NIS: {{ item.tagihan?.siswa?.nis }} ({{ item.tagihan?.siswa?.kelas?.nama_kelas || '-' }})</div>
+                                        </td>
+                                        <td class="whitespace-nowrap px-5 py-3.5 text-xs text-gray-700">
+                                            Bulan <strong>{{ item.tagihan?.bulan }}/{{ item.tagihan?.tahun }}</strong>
+                                            <div class="text-[11px] text-gray-400">Sisa: {{ formatRupiah(item.tagihan?.sisa_tagihan) }}</div>
+                                        </td>
+                                        <td class="whitespace-nowrap px-5 py-3.5 font-semibold text-rose-600 text-xs">{{ item.batas_waktu_baru }}</td>
+                                        <td class="px-5 py-3.5 text-xs text-gray-600 max-w-xs truncate">{{ item.alasan_penundaan }}</td>
+                                        <td class="whitespace-nowrap px-5 py-3.5 text-xs">
+                                            <a 
+                                                v-if="item.dokumen_pendukung" 
+                                                :href="`/storage/${item.dokumen_pendukung}`" 
+                                                target="_blank" 
+                                                class="text-indigo-600 hover:underline font-semibold"
+                                            >
+                                                Lihat Berkas ↗
+                                            </a>
+                                            <span v-else class="text-gray-400">-</span>
+                                        </td>
+                                        <td class="whitespace-nowrap px-5 py-3.5 text-center">
+                                            <span
+                                                :class="{
+                                                    'bg-emerald-50 text-emerald-700 border border-emerald-200': (item.status?.value || item.status) === 'disetujui',
+                                                    'bg-amber-50 text-amber-700 border border-amber-200': ['menunggu', 'menunggu_persetujuan'].includes(item.status?.value || item.status),
+                                                    'bg-rose-50 text-rose-700 border border-rose-200': (item.status?.value || item.status) === 'ditolak'
+                                                }"
+                                                class="rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase"
+                                            >
+                                                {{ (item.status?.value || item.status)?.replace('_', ' ') }}
+                                            </span>
+                                        </td>
+                                        <td class="whitespace-nowrap px-5 py-3.5 text-center text-xs">
+                                            <button
+                                                v-if="userRole === 'kepala_sekolah' && ['menunggu', 'menunggu_persetujuan'].includes(item.status?.value || item.status)"
+                                                @click="openModalPersetujuan(item)"
+                                                class="font-semibold text-indigo-600 hover:text-indigo-900 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100"
+                                            >
+                                                Keputusan Kepsek
+                                            </button>
+                                            <span v-else class="text-gray-400">-</span>
+                                        </td>
+                                    </tr>
+                                    <tr v-if="!props.dispensasi?.data?.length">
+                                        <td colspan="7" class="p-6 text-center text-sm text-gray-400">Belum ada permohonan dispensasi yang tercatat.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -115,28 +182,94 @@ const submitPersetujuan = () => {
 
         <!-- Modal Ajukan Dispensasi -->
         <div v-if="isModalAjukanOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-                <h3 class="mb-4 text-lg font-bold text-gray-900">Form Pengajuan Dispensasi</h3>
-                <form @submit.prevent="submitAjukan" class="space-y-4">
+            <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl space-y-4">
+                <div class="border-b pb-3">
+                    <h3 class="text-base font-bold text-gray-900">Form Pengajuan Dispensasi SPP</h3>
+                    <p class="text-xs text-gray-500">Pilih siswa dan bulan tagihan yang dimintakan penundaan tenggat waktu</p>
+                </div>
+
+                <!-- Notifikasi Ringkasan Error Validasi -->
+                <div v-if="Object.keys(formAjukan.errors).length > 0" class="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs">
+                    <p class="font-bold">Gagal mengirim permohonan:</p>
+                    <ul class="list-disc list-inside mt-1 space-y-0.5">
+                        <li v-for="(err, key) in formAjukan.errors" :key="key">{{ err }}</li>
+                    </ul>
+                </div>
+
+                <form @submit.prevent="submitAjukan" class="space-y-4 text-xs">
+                    <!-- Dropdown Pilih Siswa -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">ID Tagihan SPP</label>
-                        <input v-model="formAjukan.tagihan_spp_id" type="number" required class="mt-1 w-full rounded-md border-gray-300" />
+                        <label class="block font-semibold text-gray-700 mb-1">Pilih Siswa</label>
+                        <select 
+                            v-model="selectedSiswaId" 
+                            @change="onSiswaChange"
+                            required 
+                            class="w-full rounded-lg border-gray-300 text-xs focus:border-indigo-500 focus:ring-indigo-500"
+                        >
+                            <option value="">-- Pilih Siswa Penunggak --</option>
+                            <option v-for="s in props.daftarSiswaTagihan" :key="s.id" :value="s.id">
+                                {{ s.nis }} - {{ s.nama_lengkap }} ({{ s.kelas }})
+                            </option>
+                        </select>
                     </div>
+
+                    <!-- Dropdown Tagihan SPP Terkait -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Jatuh Tempo Baru yang Diajukan</label>
-                        <input v-model="formAjukan.batas_waktu_baru" type="date" required class="mt-1 w-full rounded-md border-gray-300" />
+                        <label class="block font-semibold text-gray-700 mb-1">Pilih Bulan Tagihan SPP</label>
+                        <select 
+                            v-model="formAjukan.tagihan_spp_id" 
+                            :disabled="!selectedSiswaId"
+                            required 
+                            class="w-full rounded-lg border-gray-300 text-xs focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-gray-100"
+                        >
+                            <option value="">-- {{ selectedSiswaId ? 'Pilih Periode Tagihan' : 'Pilih Siswa Terlebih Dahulu' }} --</option>
+                            <option v-for="t in daftarTagihanTersedia" :key="t.id" :value="t.id">
+                                {{ t.periode }} — Sisa: {{ formatRupiah(t.sisa) }}
+                            </option>
+                        </select>
+                        <div v-if="formAjukan.errors.tagihan_spp_id" class="text-rose-600 mt-1">{{ formAjukan.errors.tagihan_spp_id }}</div>
                     </div>
+
+                    <!-- Batas Waktu Baru -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Alasan Penundaan</label>
-                        <textarea v-model="formAjukan.alasan_penundaan" required class="mt-1 w-full rounded-md border-gray-300"></textarea>
+                        <label class="block font-semibold text-gray-700 mb-1">Batas Waktu (Jatuh Tempo) Baru yang Diajukan</label>
+                        <input 
+                            v-model="formAjukan.batas_waktu_baru" 
+                            type="date" 
+                            required 
+                            class="w-full rounded-lg border-gray-300 text-xs focus:border-indigo-500 focus:ring-indigo-500" 
+                        />
+                        <div v-if="formAjukan.errors.batas_waktu_baru" class="text-rose-600 mt-1">{{ formAjukan.errors.batas_waktu_baru }}</div>
                     </div>
+
+                    <!-- Alasan Penundaan -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Dokumen Surat Keterangan / Bukti</label>
-                        <input type="file" @input="formAjukan.dokumen_pendukung = $event.target.files[0]" class="mt-1 w-full text-sm" />
+                        <label class="block font-semibold text-gray-700 mb-1">Alasan Penundaan Pembayaran</label>
+                        <textarea 
+                            v-model="formAjukan.alasan_penundaan" 
+                            rows="3" 
+                            placeholder="Contoh: Orang tua siswa sedang cuti sakit tanpa upah sampai akhir bulan..."
+                            required 
+                            class="w-full rounded-lg border-gray-300 text-xs focus:border-indigo-500 focus:ring-indigo-500"
+                        ></textarea>
+                        <div v-if="formAjukan.errors.alasan_penundaan" class="text-rose-600 mt-1">{{ formAjukan.errors.alasan_penundaan }}</div>
                     </div>
-                    <div class="flex justify-end space-x-2 pt-2">
-                        <button type="button" @click="isModalAjukanOpen = false" class="rounded-md border px-4 py-2 text-sm text-gray-600">Batal</button>
-                        <button type="submit" :disabled="formAjukan.processing" class="rounded-md bg-indigo-600 px-4 py-2 text-sm text-white">Kirim Pengajuan</button>
+
+                    <!-- Upload Dokumen Surat Bukti -->
+                    <div>
+                        <label class="block font-semibold text-gray-700 mb-1">Dokumen Surat Keterangan / Bukti (PDF / Foto)</label>
+                        <input 
+                            type="file" 
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            @change="formAjukan.dokumen_pendukung = $event.target.files[0]" 
+                            class="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" 
+                        />
+                        <div v-if="formAjukan.errors.dokumen_pendukung" class="text-rose-600 mt-1">{{ formAjukan.errors.dokumen_pendukung }}</div>
+                    </div>
+
+                    <div class="flex justify-end gap-2 pt-3 border-t">
+                        <button type="button" @click="isModalAjukanOpen = false" class="rounded-lg border px-4 py-2 text-gray-600 hover:bg-gray-50">Batal</button>
+                        <button type="submit" :disabled="formAjukan.processing" class="rounded-lg bg-indigo-600 px-4 py-2 font-semibold text-white hover:bg-indigo-700">Kirim Pengajuan</button>
                     </div>
                 </form>
             </div>
@@ -144,23 +277,27 @@ const submitPersetujuan = () => {
 
         <!-- Modal Keputusan Kepala Sekolah -->
         <div v-if="isModalPersetujuanOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-                <h3 class="mb-4 text-lg font-bold text-gray-900">Keputusan Kepala Sekolah</h3>
-                <form @submit.prevent="submitPersetujuan" class="space-y-4">
+            <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl space-y-4">
+                <div class="border-b pb-3">
+                    <h3 class="text-base font-bold text-gray-900">Keputusan Kepala Sekolah</h3>
+                    <p class="text-xs text-gray-500">{{ selectedDispensasi?.tagihan?.siswa?.nama_lengkap }} ({{ selectedDispensasi?.tagihan?.siswa?.nis }})</p>
+                </div>
+
+                <form @submit.prevent="submitPersetujuan" class="space-y-4 text-xs">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Keputusan</label>
-                        <select v-model="formPersetujuan.status" class="mt-1 w-full rounded-md border-gray-300">
+                        <label class="block font-semibold text-gray-700 mb-1">Keputusan</label>
+                        <select v-model="formPersetujuan.status" class="w-full rounded-lg border-gray-300 text-xs focus:border-indigo-500 focus:ring-indigo-500">
                             <option value="disetujui">Setujui Dispensasi</option>
                             <option value="ditolak">Tolak Dispensasi</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Catatan Pimpinan</label>
-                        <textarea v-model="formPersetujuan.catatan_pimpinan" class="mt-1 w-full rounded-md border-gray-300"></textarea>
+                        <label class="block font-semibold text-gray-700 mb-1">Catatan Pimpinan</label>
+                        <textarea v-model="formPersetujuan.catatan_pimpinan" rows="3" class="w-full rounded-lg border-gray-300 text-xs focus:border-indigo-500 focus:ring-indigo-500" placeholder="Tuliskan catatan arahan pimpinan..."></textarea>
                     </div>
-                    <div class="flex justify-end space-x-2 pt-2">
-                        <button type="button" @click="isModalPersetujuanOpen = false" class="rounded-md border px-4 py-2 text-sm text-gray-600">Batal</button>
-                        <button type="submit" :disabled="formPersetujuan.processing" class="rounded-md bg-emerald-600 px-4 py-2 text-sm text-white">Simpan Keputusan</button>
+                    <div class="flex justify-end gap-2 pt-2 border-t">
+                        <button type="button" @click="isModalPersetujuanOpen = false" class="rounded-lg border px-4 py-2 text-gray-600 hover:bg-gray-50">Batal</button>
+                        <button type="submit" :disabled="formPersetujuan.processing" class="rounded-lg bg-emerald-600 px-4 py-2 font-semibold text-white hover:bg-emerald-700">Simpan Keputusan</button>
                     </div>
                 </form>
             </div>

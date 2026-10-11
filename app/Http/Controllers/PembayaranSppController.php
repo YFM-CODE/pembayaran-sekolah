@@ -6,8 +6,11 @@ use App\Filters\GlobalFilter;
 use App\Http\Requests\SimpanPembayaranSppRequest;
 use App\Interfaces\TagihanSppInterface;
 use App\Interfaces\TransaksiSppInterface;
+use App\Models\Kelas;
 use App\Models\Siswa;
+use App\Models\TagihanSpp;
 use App\Models\TransaksiSpp;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,21 +31,52 @@ class PembayaranSppController extends Controller
     {
         return Inertia::render('PembayaranSpp/Index', [
             'transaksi' => $this->transaksiRepo->paginate($filter),
+            'daftarKelas' => Kelas::orderBy('nama_kelas')->get(['id', 'nama_kelas']),
             'filters' => request()->all(['search']),
         ]);
     }
 
     public function cariSiswa(Request $request): JsonResponse
     {
-        $keyword = $request->query('q');
+        $keyword = trim((string) $request->query('q'));
+        $kelasId = $request->query('kelas_id');
 
-        $siswa = Siswa::with(['kelas', 'keringanan'])
-            ->where('nis', 'like', "%{$keyword}%")
-            ->orWhere('nama_lengkap', 'like', "%{$keyword}%")
-            ->limit(10)
-            ->get();
+        // 1. Ambil Siswa dengan relasi kelas yang pasti
+        $query = Siswa::with('kelas');
 
-        return response()->json($siswa);
+        if ($kelasId) {
+            $query->where('kelas_id', $kelasId);
+        }
+
+        if ($keyword !== '') {
+            $query->where(function ($sub) use ($keyword) {
+                $sub->where('nis', 'like', "%{$keyword}%")
+                    ->orWhere('nama_lengkap', 'like', "%{$keyword}%");
+            });
+        }
+
+        $daftarSiswa = $query->limit(20)->get();
+
+        if ($daftarSiswa->isEmpty()) {
+            return response()->json([]);
+        }
+
+        // 2. Ambil tagihan aktif langsung dari database agar aman dari perbedaan nama relasi Model
+        $siswaIds = $daftarSiswa->pluck('id');
+        $tagihanGroup = DB::table('tagihan_spp')
+            ->whereIn('siswa_id', $siswaIds)
+            ->whereIn('status', ['belum_bayar', 'sebagian'])
+            ->orderBy('tahun', 'asc')
+            ->orderBy('bulan', 'asc')
+            ->get()
+            ->groupBy('siswa_id');
+
+        // 3. Pasangkan tagihan ke properti tagihan_spp pada masing-masing siswa
+        $daftarSiswa->each(function ($siswa) use ($tagihanGroup) {
+            $siswa->tagihan_spp = $tagihanGroup->get($siswa->id, collect());
+        });
+
+        return response()->json($daftarSiswa);
     }
 
     public function store(SimpanPembayaranSppRequest $request): RedirectResponse
@@ -51,7 +85,10 @@ class PembayaranSppController extends Controller
 
         DB::beginTransaction();
         try {
-            $tagihan = $this->tagihanRepo->cariBerdasarkanId($data['tagihan_spp_id']);
+            /** @var TagihanSpp $tagihan */
+            $tagihan = TagihanSpp::where('id', $data['tagihan_spp_id'])
+                ->lockForUpdate()
+                ->first();
 
             if (! $tagihan || $tagihan->status === 'lunas') {
                 throw ValidationException::withMessages([
@@ -59,35 +96,65 @@ class PembayaranSppController extends Controller
                 ]);
             }
 
-            if ($data['jumlah_dibayar'] > $tagihan->sisa_tagihan) {
+            if ((float) $data['jumlah_dibayar'] > (float) $tagihan->sisa_tagihan) {
                 throw ValidationException::withMessages([
-                    'jumlah_dibayar' => 'Jumlah bayar tidak boleh melebihi sisa tagihan (Rp '.number_format($tagihan->sisa_tagihan, 0, ',', '.').').',
+                    'jumlah_dibayar' => 'Jumlah bayar tidak boleh melebihi sisa tagihan (Rp ' . number_format($tagihan->sisa_tagihan, 0, ',', '.') . ').',
                 ]);
             }
 
-            // 1. Simpan Transaksi Kasir
+            // Nomor kuitansi unik: KW-SPP-YYYYMM-XXXX
+            $prefix = 'KW-SPP-' . date('Ym') . '-';
+            $terakhir = TransaksiSpp::where('nomor_kuitansi', 'like', "{$prefix}%")
+                ->orderByDesc('id')
+                ->value('nomor_kuitansi');
+
+            $urutan = $terakhir ? ((int) substr($terakhir, -4)) + 1 : 1;
+            $nomorKuitansi = $prefix . str_pad((string) $urutan, 4, '0', STR_PAD_LEFT);
+
+            // Simpan transaksi kasir
             $trx = TransaksiSpp::create([
-                'nomor_transaksi' => 'TRX-'.date('YmdHis').'-'.rand(100, 999),
+                'nomor_kuitansi' => $nomorKuitansi,
                 'tagihan_spp_id' => $tagihan->id,
                 'petugas_id' => $request->user()->id,
                 'jumlah_dibayar' => $data['jumlah_dibayar'],
+                'waktu_transaksi' => Carbon::now(),
                 'metode_pembayaran' => $data['metode_pembayaran'],
                 'nomor_referensi_bank' => $data['nomor_referensi_bank'] ?? null,
                 'catatan' => $data['catatan'] ?? null,
             ]);
 
-            // 2. Potong Sisa Tagihan
-            $sisaBaru = $tagihan->sisa_tagihan - $data['jumlah_dibayar'];
+            // Update nominal & status tagihan
+            $totalTerbayarBaru = (float) $tagihan->total_terbayar + (float) $data['jumlah_dibayar'];
+            $sisaBaru = (float) $tagihan->nominal_tagihan - $totalTerbayarBaru;
+
             $tagihan->update([
-                'sisa_tagihan' => $sisaBaru,
+                'total_terbayar' => $totalTerbayarBaru,
+                'sisa_tagihan' => max(0, $sisaBaru),
                 'status' => $sisaBaru <= 0 ? 'lunas' : 'sebagian',
             ]);
 
             DB::commit();
 
+            // Ambil relasi siswa & petugas untuk respon kuitansi
+            $siswa = Siswa::with('kelas')->find($tagihan->siswa_id);
+
             return redirect()->back()->with([
                 'success' => 'Pembayaran berhasil disimpan.',
-                'transaksi_id' => $trx->id,
+                'kuitansi' => [
+                    'id' => $trx->id,
+                    'nomor_kuitansi' => $trx->nomor_kuitansi,
+                    'jumlah_dibayar' => $trx->jumlah_dibayar,
+                    'metode_pembayaran' => $trx->metode_pembayaran,
+                    'waktu_transaksi' => Carbon::parse($trx->waktu_transaksi)->translatedFormat('d F Y H:i'),
+                    'nama_siswa' => $siswa?->nama_lengkap ?? '-',
+                    'nis' => $siswa?->nis ?? '-',
+                    'kelas' => $siswa?->kelas?->nama_kelas ?? '-',
+                    'bulan' => $tagihan->bulan,
+                    'tahun' => $tagihan->tahun,
+                    'sisa_tagihan' => max(0, $sisaBaru),
+                    'status_tagihan' => $sisaBaru <= 0 ? 'lunas' : 'sebagian',
+                    'petugas' => $request->user()->name,
+                ],
             ]);
         } catch (ValidationException $e) {
             DB::rollBack();
@@ -95,7 +162,7 @@ class PembayaranSppController extends Controller
         } catch (Throwable $th) {
             DB::rollBack();
 
-            return redirect()->back()->withErrors(['error' => 'Gagal memproses pembayaran: '.$th->getMessage()]);
+            return redirect()->back()->withErrors(['error' => 'Gagal memproses pembayaran: ' . $th->getMessage()]);
         }
     }
 }

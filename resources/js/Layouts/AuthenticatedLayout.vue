@@ -27,7 +27,7 @@ const showingNavigationDropdown = ref(false);
                                 </Link>
                             </div>
 
-                            <!-- Navigation Links Berdasarkan Peran -->
+                            <!-- Navigation Links Berdasarkan Peran (Desktop) -->
                             <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                                 <NavLink
                                     :href="route('dashboard')"
@@ -47,8 +47,6 @@ const showingNavigationDropdown = ref(false);
                                     <NavLink :href="route('admin.tagihan-spp.index')" :active="route().current('admin.tagihan-spp.*')">
                                         Tagihan Siswa
                                     </NavLink>
-
-                                    <!-- TAMBAHAN BARU: Menu Master Data & Akun -->
                                     <NavLink :href="route('admin.users.index')" :active="route().current('admin.users.*')">
                                         Manajemen Pengguna
                                     </NavLink>
@@ -62,11 +60,14 @@ const showingNavigationDropdown = ref(false);
 
                                 <!-- Bendahara -->
                                 <template v-if="$page.props.auth.user.role === 'bendahara'">
-                                    <NavLink :href="route('bendahara.setoran-kasir.index')" :active="route().current('bendahara.setoran-kasir.*')">
-                                        Verifikasi Setoran
+                                    <NavLink :href="route('bendahara.keringanan-spp.index')" :active="route().current('bendahara.keringanan-spp.*')">
+                                        Keringanan SPP
                                     </NavLink>
                                     <NavLink :href="route('bendahara.tagihan-spp.index')" :active="route().current('bendahara.tagihan-spp.*')">
-                                        Monitoring Penerimaan
+                                        Tagihan SPP
+                                    </NavLink>
+                                    <NavLink :href="route('bendahara.setoran-kasir.index')" :active="route().current('bendahara.setoran-kasir.*')">
+                                        Verifikasi Setoran
                                     </NavLink>
                                 </template>
 
@@ -214,6 +215,7 @@ const showingNavigationDropdown = ref(false);
                             Dashboard
                         </ResponsiveNavLink>
 
+                        <!-- Admin Mobile -->
                         <template v-if="$page.props.auth.user.role === 'admin'">
                             <ResponsiveNavLink :href="route('admin.tarif-spp.index')" :active="route().current('admin.tarif-spp.*')">
                                 Tarif SPP
@@ -224,8 +226,6 @@ const showingNavigationDropdown = ref(false);
                             <ResponsiveNavLink :href="route('admin.tagihan-spp.index')" :active="route().current('admin.tagihan-spp.*')">
                                 Tagihan Siswa
                             </ResponsiveNavLink>
-
-                            <!-- TAMBAHAN BARU: Menu Master Data & Akun -->
                             <ResponsiveNavLink :href="route('admin.users.index')" :active="route().current('admin.users.*')">
                                 Manajemen Pengguna
                             </ResponsiveNavLink>
@@ -237,15 +237,20 @@ const showingNavigationDropdown = ref(false);
                             </ResponsiveNavLink>
                         </template>
 
+                        <!-- Bendahara Mobile -->
                         <template v-if="$page.props.auth.user.role === 'bendahara'">
+                            <ResponsiveNavLink :href="route('bendahara.keringanan-spp.index')" :active="route().current('bendahara.keringanan-spp.*')">
+                                Keringanan SPP
+                            </ResponsiveNavLink>
+                            <ResponsiveNavLink :href="route('bendahara.tagihan-spp.index')" :active="route().current('bendahara.tagihan-spp.*')">
+                                Tagihan SPP
+                            </ResponsiveNavLink>
                             <ResponsiveNavLink :href="route('bendahara.setoran-kasir.index')" :active="route().current('bendahara.setoran-kasir.*')">
                                 Verifikasi Setoran
                             </ResponsiveNavLink>
-                            <ResponsiveNavLink :href="route('bendahara.tagihan-spp.index')" :active="route().current('bendahara.tagihan-spp.*')">
-                                Monitoring Penerimaan
-                            </ResponsiveNavLink>
                         </template>
 
+                        <!-- Staf TU Mobile -->
                         <template v-if="$page.props.auth.user.role === 'staf_tu'">
                             <ResponsiveNavLink :href="route('tu.pembayaran-spp.index')" :active="route().current('tu.pembayaran-spp.*')">
                                 Loket Pembayaran
@@ -258,6 +263,7 @@ const showingNavigationDropdown = ref(false);
                             </ResponsiveNavLink>
                         </template>
 
+                        <!-- Kepala Sekolah Mobile -->
                         <template v-if="$page.props.auth.user.role === 'kepala_sekolah'">
                             <ResponsiveNavLink :href="route('kepsek.dispensasi-spp.index')" :active="route().current('kepsek.dispensasi-spp.*')">
                                 Persetujuan Dispensasi
@@ -267,12 +273,14 @@ const showingNavigationDropdown = ref(false);
                             </ResponsiveNavLink>
                         </template>
 
+                        <!-- Komite Sekolah Mobile -->
                         <template v-if="$page.props.auth.user.role === 'komite_sekolah'">
                             <ResponsiveNavLink :href="route('komite.tarif-spp.index')" :active="route().current('komite.tarif-spp.*')">
                                 Tinjau Tarif SPP
                             </ResponsiveNavLink>
                         </template>
 
+                        <!-- Siswa Mobile -->
                         <template v-if="$page.props.auth.user.role === 'siswa'">
                             <ResponsiveNavLink :href="route('siswa.tagihan-saya.index')" :active="route().current('siswa.tagihan-saya.*')">
                                 Tagihan Saya

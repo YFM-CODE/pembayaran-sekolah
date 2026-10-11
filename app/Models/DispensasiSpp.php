@@ -16,12 +16,15 @@ class DispensasiSpp extends Model
 
     protected $fillable = [
         'tagihan_spp_id',
+        'pemohon_id',
         'disetujui_oleh',
         'tanggal_perjanjian',
         'batas_waktu_baru',
         'alasan_penundaan',
         'dokumen_pendukung',
         'status_pengajuan',
+        'catatan_pimpinan',
+        'tanggal_diproses',
     ];
 
     protected function casts(): array
@@ -36,6 +39,11 @@ class DispensasiSpp extends Model
     public function tagihan(): BelongsTo
     {
         return $this->belongsTo(TagihanSpp::class, 'tagihan_spp_id');
+    }
+
+    public function pemohon(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'pemohon_id');
     }
 
     public function kepalaSekolah(): BelongsTo
