@@ -199,8 +199,9 @@ onUnmounted(() => {
                     <div class="flex h-16 justify-between">
                         <div class="flex">
                             <div class="flex shrink-0 items-center">
-                                <Link :href="route('dashboard')">
-                                    <ApplicationLogo class="block h-9 w-auto fill-current text-brand" />
+                                <Link :href="route('dashboard')" class="flex items-center gap-3">
+                                    <ApplicationLogo class="block h-9 w-9 shadow-sm" />
+                                    <span class="font-bold tracking-tight text-ink">SPP Sekolah</span>
                                 </Link>
                             </div>
 
