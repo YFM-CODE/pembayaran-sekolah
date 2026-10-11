@@ -1,3 +1,28 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-page text-ink antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid #2f9e83;
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .ui-panel {
+    @apply rounded-xl border border-brand-border bg-white shadow-panel;
+  }
+
+  .ui-page-title {
+    @apply text-2xl font-semibold tracking-tight text-ink;
+  }
+
+  .ui-muted {
+    @apply text-sm text-ink-muted;
+  }
+}

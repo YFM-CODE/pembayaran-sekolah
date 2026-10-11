@@ -42,100 +42,172 @@ const formatRupiah = (val) => new Intl.NumberFormat('id-ID', { style: 'currency'
 
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold leading-tight text-gray-800">Manajemen Tagihan SPP</h2>
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-ink sm:text-2xl">Manajemen Tagihan SPP</h1>
+                    <p class="text-xs text-ink-muted sm:text-sm mt-0.5">Pantau status kewajiban tagihan bulanan siswa dan terbitkan tagihan periode berjalan.</p>
+                </div>
                 <button
-                    v-if="['admin', 'bendahara'].includes(props.auth.user.role)"
+                    v-if="['admin', 'bendahara'].includes(props.auth?.user?.role)"
                     @click="isGenerateModalOpen = true"
-                    class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+                    class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus"
                 >
-                    ⚡ Generate Tagihan Bulanan
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    <span>Generate Tagihan Bulanan</span>
                 </button>
             </div>
         </template>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
-                <!-- Filter Bar -->
-                <div class="mb-4 flex gap-4">
-                    <input v-model="search" type="text" placeholder="Cari NIS, Nama Siswa, No Tagihan..." class="w-72 rounded-md border-gray-300" />
-                    <select v-model="status" class="rounded-md border-gray-300">
-                        <option value="">Semua Status</option>
+        <div class="space-y-6">
+            <!-- Filter Toolbar -->
+            <div class="flex flex-col sm:flex-row gap-3 rounded-xl border border-brand-border bg-white p-4 shadow-xs">
+                <div class="relative flex-1">
+                    <input
+                        v-model="search"
+                        type="search"
+                        placeholder="Cari NIS, Nama Siswa, No Tagihan..."
+                        class="w-full rounded-lg border border-brand-border bg-white px-3 py-2 text-sm text-ink placeholder:text-ink-muted/80 shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-focus"
+                    />
+                </div>
+                <div class="w-full sm:w-56">
+                    <select
+                        v-model="status"
+                        class="w-full rounded-lg border border-brand-border bg-white px-3 py-2 text-sm text-ink shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-focus"
+                    >
+                        <option value="">Semua Status Tagihan</option>
                         <option value="belum_lunas">Belum Lunas</option>
                         <option value="sebagian">Sebagian</option>
                         <option value="lunas">Lunas</option>
                     </select>
                 </div>
+            </div>
 
-                <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                    <div class="p-6">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">No. Tagihan</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Siswa</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Periode</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Total Tagihan</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Sisa</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200 bg-white">
-                                <tr v-for="item in props.tagihan.data" :key="item.id">
-                                    <td class="whitespace-nowrap px-6 py-4 font-mono text-sm text-gray-600">{{ item.nomor_tagihan }}</td>
-                                    <td class="whitespace-nowrap px-6 py-4">
-                                        <div class="font-medium text-gray-900">{{ item.siswa?.nama_lengkap }}</div>
-                                        <div class="text-xs text-gray-500">{{ item.siswa?.nis }} - {{ item.siswa?.kelas?.nama_kelas }}</div>
-                                    </td>
-                                    <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-700">Bulan {{ item.bulan }} / {{ item.tahun }}</td>
-                                    <td class="whitespace-nowrap px-6 py-4 font-medium">{{ formatRupiah(item.total_harus_bayar) }}</td>
-                                    <td class="whitespace-nowrap px-6 py-4 font-semibold text-rose-600">{{ formatRupiah(item.sisa_tagihan) }}</td>
-                                    <td class="whitespace-nowrap px-6 py-4">
-                                        <span
-                                            :class="{
-                                                'bg-green-100 text-green-800': item.status === 'lunas',
-                                                'bg-amber-100 text-amber-800': item.status === 'sebagian',
-                                                'bg-red-100 text-red-800': item.status === 'belum_lunas'
-                                            }"
-                                            class="rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize"
-                                        >
-                                            {{ item.status.replace('_', ' ') }}
-                                        </span>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+            <!-- Table Card -->
+            <div class="overflow-hidden rounded-xl border border-brand-border bg-white shadow-xs">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-brand-border text-sm">
+                        <thead class="bg-brand-soft text-left text-xs uppercase tracking-wide text-ink">
+                            <tr>
+                                <th scope="col" class="px-5 py-3 font-semibold">No. Tagihan</th>
+                                <th scope="col" class="px-5 py-3 font-semibold">Identitas Siswa</th>
+                                <th scope="col" class="px-5 py-3 font-semibold">Periode SPP</th>
+                                <th scope="col" class="px-5 py-3 text-right font-semibold">Total Tagihan</th>
+                                <th scope="col" class="px-5 py-3 text-right font-semibold">Sisa Tagihan</th>
+                                <th scope="col" class="px-5 py-3 text-center font-semibold">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-brand-border">
+                            <tr
+                                v-for="item in props.tagihan.data"
+                                :key="item.id"
+                                class="odd:bg-white even:bg-page/50 transition-colors hover:bg-brand-soft/40"
+                            >
+                                <td class="whitespace-nowrap px-5 py-3.5 font-mono text-xs font-semibold text-brand">
+                                    {{ item.nomor_tagihan }}
+                                </td>
+                                <td class="whitespace-nowrap px-5 py-3.5">
+                                    <span class="block font-semibold text-ink">{{ item.siswa?.nama_lengkap }}</span>
+                                    <span class="block text-xs text-ink-muted">NIS: {{ item.siswa?.nis }} &middot; {{ item.siswa?.kelas?.nama_kelas || '-' }}</span>
+                                </td>
+                                <td class="whitespace-nowrap px-5 py-3.5 text-ink-muted">
+                                    Bulan {{ item.bulan }} / {{ item.tahun }}
+                                </td>
+                                <td class="whitespace-nowrap px-5 py-3.5 text-right font-semibold tabular-nums text-ink">
+                                    {{ formatRupiah(item.total_harus_bayar) }}
+                                </td>
+                                <td class="whitespace-nowrap px-5 py-3.5 text-right font-bold tabular-nums text-status-danger">
+                                    {{ formatRupiah(item.sisa_tagihan) }}
+                                </td>
+                                <td class="whitespace-nowrap px-5 py-3.5 text-center">
+                                    <span
+                                        :class="{
+                                            'bg-status-success/15 text-status-success': item.status === 'lunas',
+                                            'bg-status-warning/15 text-status-warning': item.status === 'sebagian',
+                                            'bg-status-danger/15 text-status-danger': item.status === 'belum_lunas'
+                                        }"
+                                        class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize"
+                                    >
+                                        {{ item.status.replace('_', ' ') }}
+                                    </span>
+                                </td>
+                            </tr>
+
+                            <tr v-if="!props.tagihan.data || props.tagihan.data.length === 0">
+                                <td colspan="6" class="px-5 py-8 text-center text-ink-muted">
+                                    Tidak ada data tagihan yang sesuai dengan filter.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
 
         <!-- Modal Generate -->
-        <div v-if="isGenerateModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-                <h3 class="mb-4 text-lg font-bold text-gray-900">Generate Tagihan Bulanan</h3>
+        <div v-if="isGenerateModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 backdrop-blur-xs p-4">
+            <div class="w-full max-w-md rounded-2xl border border-brand-border bg-white p-6 shadow-xl">
+                <h3 class="mb-1 text-base font-bold text-ink">Generate Tagihan Bulanan Massal</h3>
+                <p class="mb-4 text-xs text-ink-muted">Terbitkan tagihan SPP untuk seluruh siswa aktif berdasarkan skema tarif dan program keringanan.</p>
+
                 <form @submit.prevent="submitGenerate" class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Tahun Ajaran</label>
-                        <input v-model="generateForm.tahun_ajaran" type="text" required class="mt-1 w-full rounded-md border-gray-300" />
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-ink mb-1">Tahun Ajaran</label>
+                        <input
+                            v-model="generateForm.tahun_ajaran"
+                            type="text"
+                            required
+                            class="w-full rounded-lg border border-brand-border bg-white px-3 py-2 text-sm text-ink shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-focus"
+                        />
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Bulan (1-12)</label>
-                            <input v-model="generateForm.bulan" type="number" min="1" max="12" required class="mt-1 w-full rounded-md border-gray-300" />
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-ink mb-1">Bulan (1-12)</label>
+                            <input
+                                v-model="generateForm.bulan"
+                                type="number"
+                                min="1"
+                                max="12"
+                                required
+                                class="w-full rounded-lg border border-brand-border bg-white px-3 py-2 text-sm text-ink shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-focus"
+                            />
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Tahun</label>
-                            <input v-model="generateForm.tahun" type="number" min="2020" required class="mt-1 w-full rounded-md border-gray-300" />
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-ink mb-1">Tahun</label>
+                            <input
+                                v-model="generateForm.tahun"
+                                type="number"
+                                min="2020"
+                                required
+                                class="w-full rounded-lg border border-brand-border bg-white px-3 py-2 text-sm text-ink shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-focus"
+                            />
                         </div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Tanggal Jatuh Tempo</label>
-                        <input v-model="generateForm.jatuh_tempo" type="date" required class="mt-1 w-full rounded-md border-gray-300" />
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-ink mb-1">Tanggal Jatuh Tempo</label>
+                        <input
+                            v-model="generateForm.jatuh_tempo"
+                            type="date"
+                            required
+                            class="w-full rounded-lg border border-brand-border bg-white px-3 py-2 text-sm text-ink shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-focus"
+                        />
                     </div>
-                    <div class="flex justify-end space-x-2 pt-2">
-                        <button type="button" @click="isGenerateModalOpen = false" class="rounded-md border px-4 py-2 text-sm text-gray-600">Batal</button>
-                        <button type="submit" :disabled="generateForm.processing" class="rounded-md bg-emerald-600 px-4 py-2 text-sm text-white">Mulai Generate</button>
+                    <div class="flex justify-end gap-2 pt-4 border-t border-brand-border">
+                        <button
+                            type="button"
+                            @click="isGenerateModalOpen = false"
+                            class="rounded-lg border border-brand-border bg-white px-4 py-2 text-sm font-semibold text-ink hover:bg-brand-soft"
+                        >
+                            Batal
+                        </button>
+                        <button
+                            type="submit"
+                            :disabled="generateForm.processing"
+                            class="rounded-lg bg-brand px-5 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus disabled:opacity-50"
+                        >
+                            Mulai Generate
+                        </button>
                     </div>
                 </form>
             </div>

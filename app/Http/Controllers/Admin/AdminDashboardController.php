@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\MetodePembayaran;
 use App\Http\Controllers\Controller;
 use App\Models\Kelas;
 use App\Models\KeringananSpp;
 use App\Models\Siswa;
 use App\Models\TagihanSpp;
 use App\Models\TarifSpp;
+use App\Models\TransaksiSpp;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -29,6 +31,22 @@ class AdminDashboardController extends Controller
 
         $persenLunas = $totalTagihan > 0 ? round(($tagihanLunas / $totalTagihan) * 100) : 0;
 
+        $transaksiTerbaru = TransaksiSpp::with(['tagihan.siswa', 'petugas'])
+            ->latest('waktu_transaksi')
+            ->limit(5)
+            ->get()
+            ->map(fn ($t) => [
+                'id' => $t->id,
+                'nomor_kuitansi' => $t->nomor_kuitansi,
+                'siswa' => $t->tagihan?->siswa?->nama_lengkap ?? 'Siswa',
+                'nis' => $t->tagihan?->siswa?->nis ?? '-',
+                'jumlah' => (float) $t->jumlah_dibayar,
+                'waktu' => $t->waktu_transaksi?->toISOString() ?? $t->created_at?->toISOString(),
+                'metode' => $t->metode_pembayaran instanceof MetodePembayaran ? $t->metode_pembayaran->value : (string) $t->metode_pembayaran,
+                'petugas' => $t->petugas?->name ?? 'Petugas TU',
+            ])
+            ->all();
+
         return Inertia::render('Admin/Dashboard', [
             'ringkasan' => [
                 ['label' => 'Total Siswa Terdaftar', 'nilai' => $totalSiswa, 'sub' => "{$siswaAktif} Aktif, {$siswaLulus} Lulus", 'url' => route('admin.siswa.index')],
@@ -48,6 +66,7 @@ class AdminDashboardController extends Controller
                 'siswa_lulus' => $siswaLulus,
                 'siswa_keluar' => $siswaKeluar,
             ],
+            'transaksiTerbaru' => $transaksiTerbaru,
         ]);
     }
 }

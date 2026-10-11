@@ -59,102 +59,184 @@ const submitReset = () => {
 
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold leading-tight text-gray-800">Manajemen Pengguna</h2>
-                <Link :href="route('admin.users.create')" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
-                    Tambah Pengguna
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-ink sm:text-2xl">Manajemen Pengguna</h1>
+                    <p class="text-xs text-ink-muted sm:text-sm mt-0.5">Kelola akun akses sistem, hak peran, status keaktifan, dan kredensial.</p>
+                </div>
+                <Link
+                    :href="route('admin.users.create')"
+                    class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus"
+                >
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span>Tambah Pengguna</span>
                 </Link>
             </div>
         </template>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-4">
-                <div class="flex gap-4 bg-white p-4 shadow sm:rounded-lg">
+        <div class="space-y-6">
+            <!-- Filter & Search Toolbar -->
+            <div class="flex flex-col sm:flex-row gap-3 rounded-xl border border-brand-border bg-white p-4 shadow-xs">
+                <div class="relative flex-1">
                     <input
                         v-model="search"
                         @input="handleFilter"
-                        type="text"
+                        type="search"
                         placeholder="Cari nama atau email..."
-                        class="w-full max-w-sm rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        class="w-full rounded-lg border border-brand-border bg-white px-3 py-2 text-sm text-ink placeholder:text-ink-muted/80 shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-focus"
                     />
+                </div>
+                <div class="w-full sm:w-56">
                     <select
                         v-model="roleFilter"
                         @change="handleFilter"
-                        class="rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        class="w-full rounded-lg border border-brand-border bg-white px-3 py-2 text-sm text-ink shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-focus"
                     >
                         <option value="">Semua Peran</option>
                         <option v-for="role in roles" :key="role" :value="role">{{ role }}</option>
                     </select>
                 </div>
+            </div>
 
-                <div class="overflow-hidden bg-white shadow sm:rounded-lg">
-                    <table class="min-w-full divide-y divide-gray-200 text-sm">
-                        <thead class="bg-gray-50">
+            <!-- Users Table Card -->
+            <div class="overflow-hidden rounded-xl border border-brand-border bg-white shadow-xs">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-brand-border text-sm">
+                        <thead class="bg-brand-soft text-left text-xs uppercase tracking-wide text-ink">
                             <tr>
-                                <th class="px-6 py-3 text-left font-medium text-gray-500">Nama</th>
-                                <th class="px-6 py-3 text-left font-medium text-gray-500">Email</th>
-                                <th class="px-6 py-3 text-left font-medium text-gray-500">Peran</th>
-                                <th class="px-6 py-3 text-left font-medium text-gray-500">Status</th>
-                                <th class="px-6 py-3 text-right font-medium text-gray-500">Aksi</th>
+                                <th scope="col" class="px-5 py-3 font-semibold">Nama</th>
+                                <th scope="col" class="px-5 py-3 font-semibold">Email</th>
+                                <th scope="col" class="px-5 py-3 font-semibold">Peran</th>
+                                <th scope="col" class="px-5 py-3 font-semibold">Status</th>
+                                <th scope="col" class="px-5 py-3 text-right font-semibold">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200">
-                            <tr v-for="user in users.data" :key="user.id">
-                                <td class="px-6 py-4 font-medium text-gray-900">{{ user.name }}</td>
-                                <td class="px-6 py-4 text-gray-500">{{ user.email }}</td>
-                                <td class="px-6 py-4 text-gray-500 capitalize">{{ user.role }}</td>
-                                <td class="px-6 py-4">
-                                    <span :class="user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" class="rounded-full px-2.5 py-0.5 text-xs font-semibold">
+                        <tbody class="divide-y divide-brand-border">
+                            <tr
+                                v-for="user in users.data"
+                                :key="user.id"
+                                class="odd:bg-white even:bg-page/50 transition-colors hover:bg-brand-soft/40"
+                            >
+                                <td class="whitespace-nowrap px-5 py-3.5 font-medium text-ink">
+                                    {{ user.name }}
+                                </td>
+                                <td class="whitespace-nowrap px-5 py-3.5 text-ink-muted">
+                                    {{ user.email }}
+                                </td>
+                                <td class="whitespace-nowrap px-5 py-3.5">
+                                    <span class="inline-flex rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-semibold capitalize text-brand">
+                                        {{ user.role }}
+                                    </span>
+                                </td>
+                                <td class="whitespace-nowrap px-5 py-3.5">
+                                    <span
+                                        :class="user.is_active ? 'bg-status-success/15 text-status-success' : 'bg-status-danger/15 text-status-danger'"
+                                        class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                                    >
                                         {{ user.is_active ? 'Aktif' : 'Nonaktif' }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 text-right space-x-2">
-                                    <button @click="toggleStatus(user.id)" class="text-xs text-yellow-600 hover:underline">Ubah Status</button>
-                                    <button @click="openResetModal(user)" class="text-xs text-purple-600 hover:underline">Reset Sandi</button>
-                                    <Link :href="route('admin.users.edit', user.id)" class="text-xs text-indigo-600 hover:underline">Edit</Link>
+                                <td class="whitespace-nowrap px-5 py-3.5 text-right space-x-2">
+                                    <button
+                                        @click="toggleStatus(user.id)"
+                                        class="text-xs font-medium text-amber-700 hover:text-amber-900 hover:underline"
+                                    >
+                                        Ubah Status
+                                    </button>
+                                    <button
+                                        @click="openResetModal(user)"
+                                        class="text-xs font-medium text-brand hover:text-brand-hover hover:underline"
+                                    >
+                                        Reset Sandi
+                                    </button>
+                                    <Link
+                                        :href="route('admin.users.edit', user.id)"
+                                        class="text-xs font-medium text-brand hover:text-brand-hover hover:underline"
+                                    >
+                                        Edit
+                                    </Link>
                                     <button
                                         v-if="user.id !== $page.props.auth.user.id"
                                         @click="deleteUser(user)"
-                                        class="text-xs text-red-600 hover:underline"
+                                        class="text-xs font-medium text-status-danger hover:underline"
                                     >
                                         Hapus
                                     </button>
                                 </td>
                             </tr>
+
+                            <tr v-if="!users.data || users.data.length === 0">
+                                <td colspan="5" class="px-5 py-8 text-center text-ink-muted">
+                                    Tidak ada data pengguna yang sesuai dengan filter.
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
+                </div>
 
-                    <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
-                        <div class="flex gap-1">
-                            <Link
-                                v-for="(link, i) in users.links"
-                                :key="i"
-                                :href="link.url || '#'"
-                                :class="{'bg-indigo-50 text-indigo-600': link.active, 'text-gray-500': !link.active}"
-                                class="rounded px-3 py-1 text-sm border"
-                                v-html="link.label"
-                            />
-                        </div>
+                <!-- Pagination -->
+                <div v-if="users.links && users.links.length > 3" class="flex items-center justify-between border-t border-brand-border bg-white px-5 py-3">
+                    <div class="flex flex-wrap gap-1">
+                        <Link
+                            v-for="(link, i) in users.links"
+                            :key="i"
+                            :href="link.url || '#'"
+                            :class="[
+                                link.active
+                                    ? 'bg-brand-soft text-brand font-semibold border-brand'
+                                    : 'text-ink-muted border-brand-border hover:bg-page hover:text-ink',
+                                !link.url ? 'opacity-50 cursor-not-allowed' : ''
+                            ]"
+                            class="rounded-lg px-3 py-1.5 text-xs border transition-colors"
+                            v-html="link.label"
+                        />
                     </div>
                 </div>
             </div>
         </div>
 
-        <div v-if="resetModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div class="w-full max-w-md bg-white p-6 rounded-lg shadow">
-                <h3 class="text-lg font-semibold mb-4">Reset Sandi: {{ selectedUser?.name }}</h3>
+        <!-- Reset Password Modal -->
+        <div v-if="resetModal" class="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 backdrop-blur-xs p-4">
+            <div class="w-full max-w-md rounded-2xl border border-brand-border bg-white p-6 shadow-xl">
+                <h3 class="text-base font-bold text-ink mb-1">Reset Sandi Pengguna</h3>
+                <p class="text-xs text-ink-muted mb-4">{{ selectedUser?.name }} ({{ selectedUser?.email }})</p>
+
                 <form @submit.prevent="submitReset" class="space-y-4">
                     <div>
-                        <label class="block text-sm text-gray-700">Sandi Baru</label>
-                        <input v-model="resetForm.password" type="password" class="w-full rounded border-gray-300 text-sm" />
+                        <label class="block text-xs font-medium text-ink mb-1">Sandi Baru</label>
+                        <input
+                            v-model="resetForm.password"
+                            type="password"
+                            required
+                            class="w-full rounded-lg border border-brand-border px-3 py-2 text-sm text-ink focus:border-brand focus:ring-2 focus:ring-brand-focus"
+                        />
                     </div>
                     <div>
-                        <label class="block text-sm text-gray-700">Konfirmasi Sandi</label>
-                        <input v-model="resetForm.password_confirmation" type="password" class="w-full rounded border-gray-300 text-sm" />
+                        <label class="block text-xs font-medium text-ink mb-1">Konfirmasi Sandi</label>
+                        <input
+                            v-model="resetForm.password_confirmation"
+                            type="password"
+                            required
+                            class="w-full rounded-lg border border-brand-border px-3 py-2 text-sm text-ink focus:border-brand focus:ring-2 focus:ring-brand-focus"
+                        />
                     </div>
-                    <div class="flex justify-end gap-2">
-                        <button type="button" @click="resetModal = false" class="px-4 py-2 text-sm text-gray-700 border rounded">Batal</button>
-                        <button type="submit" class="px-4 py-2 text-sm bg-indigo-600 text-white rounded">Simpan</button>
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button
+                            type="button"
+                            @click="resetModal = false"
+                            class="rounded-lg border border-brand-border bg-white px-4 py-2 text-sm font-semibold text-ink hover:bg-brand-soft"
+                        >
+                            Batal
+                        </button>
+                        <button
+                            type="submit"
+                            :disabled="resetForm.processing"
+                            class="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-hover disabled:opacity-50"
+                        >
+                            Simpan Sandi
+                        </button>
                     </div>
                 </form>
             </div>

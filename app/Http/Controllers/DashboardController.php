@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\MetodePembayaran;
 use App\Enums\PeranPengguna;
 use App\Models\DispensasiSpp;
 use App\Models\Kelas;
@@ -40,8 +41,8 @@ class DashboardController extends Controller
                 $totalTagihanCount = TagihanSpp::count();
                 $totalTunggakanNominal = TagihanSpp::where('status', '!=', 'lunas')->sum('sisa_tagihan');
 
-                $ruteTagihan = route()->has('admin.tagihan-siswa.index') 
-                    ? route('admin.tagihan-siswa.index') 
+                $ruteTagihan = route()->has('admin.tagihan-siswa.index')
+                    ? route('admin.tagihan-siswa.index')
                     : (route()->has('admin.tagihan-spp.index') ? route('admin.tagihan-spp.index') : null);
 
                 $ringkasan = [
@@ -65,6 +66,28 @@ class DashboardController extends Controller
                     'siswa_lulus' => $siswaLulus,
                     'siswa_keluar' => $siswaKeluar,
                 ];
+
+                $transaksiTerbaru = TransaksiSpp::with(['tagihan.siswa', 'petugas'])
+                    ->latest('waktu_transaksi')
+                    ->limit(5)
+                    ->get()
+                    ->map(fn ($t) => [
+                        'id' => $t->id,
+                        'nomor_kuitansi' => $t->nomor_kuitansi,
+                        'siswa' => $t->tagihan?->siswa?->nama_lengkap ?? 'Siswa',
+                        'nis' => $t->tagihan?->siswa?->nis ?? '-',
+                        'jumlah' => (float) $t->jumlah_dibayar,
+                        'waktu' => $t->waktu_transaksi?->toISOString() ?? $t->created_at?->toISOString(),
+                        'metode' => $t->metode_pembayaran instanceof MetodePembayaran ? $t->metode_pembayaran->value : (string) $t->metode_pembayaran,
+                        'petugas' => $t->petugas?->name ?? 'Petugas TU',
+                    ])
+                    ->all();
+
+                return Inertia::render('Admin/Dashboard', [
+                    'ringkasan' => $ringkasan,
+                    'grafik' => $grafik,
+                    'transaksiTerbaru' => $transaksiTerbaru,
+                ]);
             } elseif ($roleValue === PeranPengguna::STAF_TU->value) {
                 $ringkasan = [
                     ['label' => 'Transaksi hari ini', 'nilai' => TransaksiSpp::where('petugas_id', $user->id)->whereDate('created_at', today())->count()],

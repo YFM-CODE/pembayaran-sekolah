@@ -19,7 +19,7 @@ const handleFilter = () => {
 };
 
 const deleteKelas = (id) => {
-    if (confirm('Yakin ingin menghapus kelas ini?')) {
+    if (confirm('Yakin ingin menghapus kelas ini? Tindakan ini tidak dapat dibatalkan.')) {
         router.delete(route('admin.kelas.destroy', id));
     }
 };
@@ -30,28 +30,40 @@ const deleteKelas = (id) => {
 
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold leading-tight text-gray-800">Master Data Kelas</h2>
-                <Link :href="route('admin.kelas.create')" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
-                    Tambah Kelas
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-ink sm:text-2xl">Master Data Kelas</h1>
+                    <p class="text-xs text-ink-muted sm:text-sm mt-0.5">Kelola data rombongan belajar, tingkatan kelas, dan peminatan kejuruan.</p>
+                </div>
+                <Link
+                    :href="route('admin.kelas.create')"
+                    class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus"
+                >
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span>Tambah Kelas</span>
                 </Link>
             </div>
         </template>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-4">
-                <div class="flex gap-4 bg-white p-4 shadow sm:rounded-lg">
+        <div class="space-y-6">
+            <!-- Filter Toolbar -->
+            <div class="flex flex-col sm:flex-row gap-3 rounded-xl border border-brand-border bg-white p-4 shadow-xs">
+                <div class="relative flex-1">
                     <input
                         v-model="search"
                         @input="handleFilter"
-                        type="text"
-                        placeholder="Cari kelas atau jurusan..."
-                        class="w-full max-w-sm rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        type="search"
+                        placeholder="Cari nama kelas atau jurusan..."
+                        class="w-full rounded-lg border border-brand-border bg-white px-3 py-2 text-sm text-ink placeholder:text-ink-muted/80 shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-focus"
                     />
+                </div>
+                <div class="w-full sm:w-56">
                     <select
                         v-model="tingkat"
                         @change="handleFilter"
-                        class="rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        class="w-full rounded-lg border border-brand-border bg-white px-3 py-2 text-sm text-ink shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-focus"
                     >
                         <option value="">Semua Tingkat</option>
                         <option value="X">Kelas X</option>
@@ -59,43 +71,81 @@ const deleteKelas = (id) => {
                         <option value="XII">Kelas XII</option>
                     </select>
                 </div>
+            </div>
 
-                <div class="overflow-hidden bg-white shadow sm:rounded-lg">
-                    <table class="min-w-full divide-y divide-gray-200 text-sm">
-                        <thead class="bg-gray-50">
+            <!-- Table Card -->
+            <div class="overflow-hidden rounded-xl border border-brand-border bg-white shadow-xs">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-brand-border text-sm">
+                        <thead class="bg-brand-soft text-left text-xs uppercase tracking-wide text-ink">
                             <tr>
-                                <th class="px-6 py-3 text-left font-medium text-gray-500">Tingkat</th>
-                                <th class="px-6 py-3 text-left font-medium text-gray-500">Nama Kelas</th>
-                                <th class="px-6 py-3 text-left font-medium text-gray-500">Jurusan</th>
-                                <th class="px-6 py-3 text-left font-medium text-gray-500">Jumlah Siswa</th>
-                                <th class="px-6 py-3 text-right font-medium text-gray-500">Aksi</th>
+                                <th scope="col" class="px-5 py-3 font-semibold">Tingkat</th>
+                                <th scope="col" class="px-5 py-3 font-semibold">Nama Kelas</th>
+                                <th scope="col" class="px-5 py-3 font-semibold">Jurusan</th>
+                                <th scope="col" class="px-5 py-3 font-semibold">Jumlah Siswa</th>
+                                <th scope="col" class="px-5 py-3 text-right font-semibold">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200">
-                            <tr v-for="item in kelasList.data" :key="item.id">
-                                <td class="px-6 py-4 font-semibold text-gray-700">{{ item.tingkat }}</td>
-                                <td class="px-6 py-4 font-medium text-gray-900">{{ item.nama_kelas }}</td>
-                                <td class="px-6 py-4 text-gray-500">{{ item.jurusan }}</td>
-                                <td class="px-6 py-4 text-gray-500">{{ item.siswa_count }} Siswa</td>
-                                <td class="px-6 py-4 text-right space-x-2">
-                                    <Link :href="route('admin.kelas.edit', item.id)" class="text-xs text-indigo-600 hover:underline">Edit</Link>
-                                    <button @click="deleteKelas(item.id)" class="text-xs text-red-600 hover:underline">Hapus</button>
+                        <tbody class="divide-y divide-brand-border">
+                            <tr
+                                v-for="item in kelasList.data"
+                                :key="item.id"
+                                class="odd:bg-white even:bg-page/50 transition-colors hover:bg-brand-soft/40"
+                            >
+                                <td class="whitespace-nowrap px-5 py-3.5">
+                                    <span class="inline-flex rounded-md bg-brand-soft px-2.5 py-0.5 text-xs font-bold text-brand">
+                                        {{ item.tingkat }}
+                                    </span>
+                                </td>
+                                <td class="whitespace-nowrap px-5 py-3.5 font-semibold text-ink">
+                                    {{ item.nama_kelas }}
+                                </td>
+                                <td class="whitespace-nowrap px-5 py-3.5 text-ink-muted">
+                                    {{ item.jurusan }}
+                                </td>
+                                <td class="whitespace-nowrap px-5 py-3.5 text-ink font-medium tabular-nums">
+                                    {{ item.siswa_count }} Siswa
+                                </td>
+                                <td class="whitespace-nowrap px-5 py-3.5 text-right space-x-3">
+                                    <Link
+                                        :href="route('admin.kelas.edit', item.id)"
+                                        class="text-xs font-semibold text-brand hover:text-brand-hover hover:underline"
+                                    >
+                                        Edit
+                                    </Link>
+                                    <button
+                                        @click="deleteKelas(item.id)"
+                                        class="text-xs font-semibold text-status-danger hover:underline"
+                                    >
+                                        Hapus
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <tr v-if="!kelasList.data || kelasList.data.length === 0">
+                                <td colspan="5" class="px-5 py-8 text-center text-ink-muted">
+                                    Belum ada data kelas yang terdaftar.
                                 </td>
                             </tr>
                         </tbody>
                     </table>
+                </div>
 
-                    <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
-                        <div class="flex gap-1">
-                            <Link
-                                v-for="(link, i) in kelasList.links"
-                                :key="i"
-                                :href="link.url || '#'"
-                                :class="{'bg-indigo-50 text-indigo-600': link.active, 'text-gray-500': !link.active}"
-                                class="rounded px-3 py-1 text-sm border"
-                                v-html="link.label"
-                            />
-                        </div>
+                <div v-if="kelasList.links && kelasList.links.length > 3" class="flex items-center justify-between border-t border-brand-border bg-white px-5 py-3">
+                    <div class="flex flex-wrap gap-1">
+                        <Link
+                            v-for="(link, i) in kelasList.links"
+                            :key="i"
+                            :href="link.url || '#'"
+                            :class="[
+                                link.active
+                                    ? 'bg-brand-soft text-brand font-semibold border-brand'
+                                    : 'text-ink-muted border-brand-border hover:bg-page hover:text-ink',
+                                !link.url ? 'opacity-50 cursor-not-allowed' : ''
+                            ]"
+                            class="rounded-lg px-3 py-1.5 text-xs border transition-colors"
+                            v-html="link.label"
+                        />
                     </div>
                 </div>
             </div>
