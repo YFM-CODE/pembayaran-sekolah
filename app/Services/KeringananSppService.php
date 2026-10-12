@@ -14,11 +14,11 @@ class KeringananSppService
     public function simpanProgram(array $data): KeringananSpp
     {
         return KeringananSpp::create([
-            'nama_program'     => $data['nama_program'],
-            'tipe_potongan'    => $data['tipe_potongan'],
-            'nilai_potongan'   => $data['nilai_potongan'],
+            'nama_program' => $data['nama_program'],
+            'tipe_potongan' => $data['tipe_potongan'],
+            'nilai_potongan' => $data['nilai_potongan'],
             'syarat_ketentuan' => $data['syarat_ketentuan'] ?? null,
-            'aktif'            => $data['aktif'] ?? true,
+            'aktif' => $data['aktif'] ?? true,
         ]);
     }
 
@@ -28,11 +28,11 @@ class KeringananSppService
     public function perbaruiProgram(KeringananSpp $program, array $data): KeringananSpp
     {
         $program->update([
-            'nama_program'     => $data['nama_program'],
-            'tipe_potongan'    => $data['tipe_potongan'],
-            'nilai_potongan'   => $data['nilai_potongan'],
+            'nama_program' => $data['nama_program'],
+            'tipe_potongan' => $data['tipe_potongan'],
+            'nilai_potongan' => $data['nilai_potongan'],
             'syarat_ketentuan' => $data['syarat_ketentuan'] ?? null,
-            'aktif'            => $data['aktif'] ?? true,
+            'aktif' => $data['aktif'] ?? true,
         ]);
 
         return $program;
@@ -67,13 +67,13 @@ class KeringananSppService
 
             return SiswaKeringananSpp::updateOrCreate(
                 [
-                    'siswa_id'     => $data['siswa_id'],
+                    'siswa_id' => $data['siswa_id'],
                     'tahun_ajaran' => $data['tahun_ajaran'],
                 ],
                 [
                     'keringanan_spp_id' => $data['keringanan_spp_id'],
-                    'nomor_sk'          => $data['nomor_sk'] ?? null,
-                    'aktif'             => $data['aktif'] ?? true,
+                    'nomor_sk' => $data['nomor_sk'] ?? null,
+                    'aktif' => $data['aktif'] ?? true,
                 ]
             );
         });

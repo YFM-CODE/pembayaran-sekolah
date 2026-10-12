@@ -26,7 +26,8 @@ class CetakKuitansiPdfHandler
 
         return [
             'transaksi' => $transaksi,
-            'nomor_transaksi' => $transaksi->nomor_transaksi,
+            'nomor_transaksi' => $transaksi->nomor_kuitansi ?? ('#TRX-'.$transaksi->id),
+            'nomor_kuitansi' => $transaksi->nomor_kuitansi ?? ('#TRX-'.$transaksi->id),
             'nama_siswa' => $siswa->nama_lengkap,
             'nis' => $siswa->nis,
             'kelas' => $siswa->kelas?->nama_kelas ?? '-',

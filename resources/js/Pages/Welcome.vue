@@ -1,5 +1,6 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
+import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 
 defineProps({
     canLogin: { type: Boolean, default: true },
@@ -32,7 +33,10 @@ const peran = [
     <div class="page">
         <!-- HEADER -->
         <header class="bar">
-            <span class="brand">SPP SEKOLAH</span>
+            <Link href="/" class="brand">
+                <ApplicationLogo class="h-9 w-9 shadow-sm" />
+                <span>SPP SEKOLAH</span>
+            </Link>
             <nav v-if="canLogin">
                 <Link
                     v-if="$page.props.auth.user"
@@ -198,10 +202,14 @@ const peran = [
 }
 
 .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
     font-weight: 800;
-    font-size: 1.05rem;
-    letter-spacing: 0.05em;
+    font-size: 1.1rem;
+    letter-spacing: 0.04em;
     color: var(--ink);
+    text-decoration: none;
 }
 
 .btn {

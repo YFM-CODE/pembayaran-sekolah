@@ -130,7 +130,7 @@ const formatRupiah = (val) => {
             <button
               type="button"
               @click="openCreateModal"
-              class="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition"
+              class="inline-flex items-center justify-center rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus transition"
             >
               + Tambah Tarif
             </button>
@@ -252,7 +252,7 @@ const formatRupiah = (val) => {
               type="text"
               v-model="form.tahun_ajaran"
               placeholder="Contoh: 2026/2027"
-              class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              class="w-full text-sm rounded-lg border-brand-border shadow-xs focus:border-brand focus:ring-brand-focus"
             />
             <p v-if="form.errors.tahun_ajaran" class="mt-1 text-xs text-rose-600">{{ form.errors.tahun_ajaran }}</p>
           </div>
@@ -262,7 +262,7 @@ const formatRupiah = (val) => {
             <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">Tingkat Kelas</label>
             <select
               v-model="form.tingkat"
-              class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              class="w-full text-sm rounded-lg border-brand-border shadow-xs focus:border-brand focus:ring-brand-focus"
             >
               <option value="" disabled>Pilih Tingkat</option>
               <option value="X">Kelas X</option>
@@ -281,7 +281,7 @@ const formatRupiah = (val) => {
               placeholder="Contoh: 250000"
               min="0"
               step="1000"
-              class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              class="w-full text-sm rounded-lg border-brand-border shadow-xs focus:border-brand focus:ring-brand-focus"
             />
             <p v-if="form.errors.nominal_standar" class="mt-1 text-xs text-rose-600">{{ form.errors.nominal_standar }}</p>
           </div>
@@ -293,7 +293,7 @@ const formatRupiah = (val) => {
               v-model="form.keterangan"
               rows="3"
               placeholder="Catatan tambahan tarif..."
-              class="w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              class="w-full text-sm rounded-lg border-brand-border shadow-xs focus:border-brand focus:ring-brand-focus"
             ></textarea>
             <p v-if="form.errors.keterangan" class="mt-1 text-xs text-rose-600">{{ form.errors.keterangan }}</p>
           </div>
@@ -309,7 +309,7 @@ const formatRupiah = (val) => {
             <button
               type="submit"
               :disabled="form.processing"
-              class="rounded-xl px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition disabled:opacity-50"
+              class="rounded-xl px-4 py-2 text-xs font-semibold text-white bg-brand hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus transition disabled:opacity-50"
             >
               {{ isEditing ? 'Simpan Perubahan' : 'Tambah Tarif' }}
             </button>

@@ -98,18 +98,18 @@ class PembayaranSppController extends Controller
 
             if ((float) $data['jumlah_dibayar'] > (float) $tagihan->sisa_tagihan) {
                 throw ValidationException::withMessages([
-                    'jumlah_dibayar' => 'Jumlah bayar tidak boleh melebihi sisa tagihan (Rp ' . number_format($tagihan->sisa_tagihan, 0, ',', '.') . ').',
+                    'jumlah_dibayar' => 'Jumlah bayar tidak boleh melebihi sisa tagihan (Rp '.number_format($tagihan->sisa_tagihan, 0, ',', '.').').',
                 ]);
             }
 
             // Nomor kuitansi unik: KW-SPP-YYYYMM-XXXX
-            $prefix = 'KW-SPP-' . date('Ym') . '-';
+            $prefix = 'KW-SPP-'.date('Ym').'-';
             $terakhir = TransaksiSpp::where('nomor_kuitansi', 'like', "{$prefix}%")
                 ->orderByDesc('id')
                 ->value('nomor_kuitansi');
 
             $urutan = $terakhir ? ((int) substr($terakhir, -4)) + 1 : 1;
-            $nomorKuitansi = $prefix . str_pad((string) $urutan, 4, '0', STR_PAD_LEFT);
+            $nomorKuitansi = $prefix.str_pad((string) $urutan, 4, '0', STR_PAD_LEFT);
 
             // Simpan transaksi kasir
             $trx = TransaksiSpp::create([
@@ -162,7 +162,7 @@ class PembayaranSppController extends Controller
         } catch (Throwable $th) {
             DB::rollBack();
 
-            return redirect()->back()->withErrors(['error' => 'Gagal memproses pembayaran: ' . $th->getMessage()]);
+            return redirect()->back()->withErrors(['error' => 'Gagal memproses pembayaran: '.$th->getMessage()]);
         }
     }
 }

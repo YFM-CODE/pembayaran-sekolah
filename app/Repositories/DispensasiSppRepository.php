@@ -5,7 +5,7 @@ namespace App\Repositories;
 use App\Filters\GlobalFilter;
 use App\Interfaces\DispensasiSppInterface;
 use App\Models\DispensasiSpp;
-use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class DispensasiSppRepository implements DispensasiSppInterface
 {
@@ -20,7 +20,7 @@ class DispensasiSppRepository implements DispensasiSppInterface
 
     public function cariBerdasarkanId(int $id): ?DispensasiSpp
     {
-        return DispensasiSpp::with(['tagihan.siswa.kelas'])->find($id);
+        return DispensasiSpp::with(['tagihan.siswa.kelas', 'pemohon', 'kepalaSekolah'])->find($id);
     }
 
     public function simpan(array $data): DispensasiSpp
@@ -30,7 +30,8 @@ class DispensasiSppRepository implements DispensasiSppInterface
 
     public function perbarui(int $id, array $data): bool
     {
-        $dispensasi = DispensasiSpp::findOrFail($id);
-        return $dispensasi->update($data);
+        $dispensasi = DispensasiSpp::find($id);
+
+        return $dispensasi ? $dispensasi->update($data) : false;
     }
 }

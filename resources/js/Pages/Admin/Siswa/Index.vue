@@ -43,7 +43,7 @@ const submitUpdateStatus = () => {
 };
 
 const deleteSiswa = (id) => {
-    if (confirm('Hapus data siswa ini?')) {
+    if (confirm('Hapus data siswa ini? Tindakan ini tidak dapat dibatalkan.')) {
         router.delete(route('admin.siswa.destroy', id));
     }
 };
@@ -54,36 +54,50 @@ const deleteSiswa = (id) => {
 
     <AuthenticatedLayout>
         <template #header>
-            <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold leading-tight text-gray-800">Master Data Siswa</h2>
-                <Link :href="route('admin.siswa.create')" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
-                    Tambah Siswa
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-ink sm:text-2xl">Master Data Siswa</h1>
+                    <p class="text-xs text-ink-muted sm:text-sm mt-0.5">Kelola identitas siswa terdaftar, NIS/NISN, penempatan rombel, dan status.</p>
+                </div>
+                <Link
+                    :href="route('admin.siswa.create')"
+                    class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus"
+                >
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span>Tambah Siswa</span>
                 </Link>
             </div>
         </template>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-4">
-                <div class="flex flex-wrap gap-4 bg-white p-4 shadow sm:rounded-lg">
+        <div class="space-y-6">
+            <!-- Filter Toolbar -->
+            <div class="flex flex-col sm:flex-row flex-wrap gap-3 rounded-xl border border-brand-border bg-white p-4 shadow-xs">
+                <div class="relative flex-1 min-w-[240px]">
                     <input
                         v-model="search"
                         @input="handleFilter"
-                        type="text"
+                        type="search"
                         placeholder="Cari NIS, NISN, atau Nama Siswa..."
-                        class="w-full max-w-sm rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        class="w-full rounded-lg border border-brand-border bg-white px-3 py-2 text-sm text-ink placeholder:text-ink-muted/80 shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-focus"
                     />
+                </div>
+                <div class="w-full sm:w-48">
                     <select
                         v-model="kelasFilter"
                         @change="handleFilter"
-                        class="rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        class="w-full rounded-lg border border-brand-border bg-white px-3 py-2 text-sm text-ink shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-focus"
                     >
                         <option value="">Semua Kelas</option>
                         <option v-for="k in kelasList" :key="k.id" :value="k.id">{{ k.nama_kelas }}</option>
                     </select>
+                </div>
+                <div class="w-full sm:w-44">
                     <select
                         v-model="statusFilter"
                         @change="handleFilter"
-                        class="rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        class="w-full rounded-lg border border-brand-border bg-white px-3 py-2 text-sm text-ink shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-focus"
                     >
                         <option value="">Semua Status</option>
                         <option value="aktif">Aktif</option>
@@ -92,93 +106,131 @@ const deleteSiswa = (id) => {
                         <option value="keluar">Keluar</option>
                     </select>
                 </div>
+            </div>
 
-                <div class="overflow-hidden bg-white shadow sm:rounded-lg">
-                    <table class="min-w-full divide-y divide-gray-200 text-sm">
-                        <thead class="bg-gray-50">
+            <!-- Table Card -->
+            <div class="overflow-hidden rounded-xl border border-brand-border bg-white shadow-xs">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-brand-border text-sm">
+                        <thead class="bg-brand-soft text-left text-xs uppercase tracking-wide text-ink">
                             <tr>
-                                <th class="px-6 py-3 text-left font-medium text-gray-500">NIS / NISN</th>
-                                <th class="px-6 py-3 text-left font-medium text-gray-500">Nama Lengkap</th>
-                                <th class="px-6 py-3 text-left font-medium text-gray-500">Kelas</th>
-                                <th class="px-6 py-3 text-left font-medium text-gray-500">Akun Terhubung</th>
-                                <th class="px-6 py-3 text-left font-medium text-gray-500">Status</th>
-                                <th class="px-6 py-3 text-right font-medium text-gray-500">Aksi</th>
+                                <th scope="col" class="px-5 py-3 font-semibold">NIS / NISN</th>
+                                <th scope="col" class="px-5 py-3 font-semibold">Nama Lengkap</th>
+                                <th scope="col" class="px-5 py-3 font-semibold">Kelas</th>
+                                <th scope="col" class="px-5 py-3 font-semibold">Akun Terhubung</th>
+                                <th scope="col" class="px-5 py-3 font-semibold">Status</th>
+                                <th scope="col" class="px-5 py-3 text-right font-semibold">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200">
-                            <tr v-for="siswa in siswaList.data" :key="siswa.id">
-                                <td class="px-6 py-4 text-gray-900">
-                                    <div>{{ siswa.nis }}</div>
-                                    <div class="text-xs text-gray-400">{{ siswa.nisn }}</div>
+                        <tbody class="divide-y divide-brand-border">
+                            <tr
+                                v-for="siswa in siswaList.data"
+                                :key="siswa.id"
+                                class="odd:bg-white even:bg-page/50 transition-colors hover:bg-brand-soft/40"
+                            >
+                                <td class="whitespace-nowrap px-5 py-3.5 text-ink">
+                                    <span class="block font-medium font-mono text-xs">{{ siswa.nis }}</span>
+                                    <span class="block text-xs text-ink-muted font-mono">{{ siswa.nisn || '-' }}</span>
                                 </td>
-                                <td class="px-6 py-4 font-medium text-gray-900">{{ siswa.nama_lengkap }}</td>
-                                <td class="px-6 py-4 text-gray-500">{{ siswa.kelas?.nama_kelas || '-' }}</td>
-                                <td class="px-6 py-4 text-gray-500">
-                                    <span v-if="siswa.user" class="text-xs text-green-700 bg-green-50 px-2 py-0.5 rounded border border-green-200">
+                                <td class="whitespace-nowrap px-5 py-3.5 font-semibold text-ink">
+                                    {{ siswa.nama_lengkap }}
+                                </td>
+                                <td class="whitespace-nowrap px-5 py-3.5 text-ink-muted">
+                                    <span class="inline-flex rounded-md bg-page px-2 py-0.5 text-xs font-medium text-ink border border-brand-border/60">
+                                        {{ siswa.kelas?.nama_kelas || '-' }}
+                                    </span>
+                                </td>
+                                <td class="whitespace-nowrap px-5 py-3.5 text-ink-muted">
+                                    <span v-if="siswa.user" class="inline-flex rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-semibold text-brand">
                                         {{ siswa.user.email }}
                                     </span>
-                                    <span v-else class="text-xs text-gray-400 italic">Belum Ada Akun</span>
+                                    <span v-else class="text-xs text-ink-muted/70 italic">Belum Ada Akun</span>
                                 </td>
-                                <td class="px-6 py-4">
-                                    <!-- Badge status yang dapat diklik untuk cepat ubah status -->
+                                <td class="whitespace-nowrap px-5 py-3.5">
                                     <button
                                         type="button"
                                         @click="openStatusModal(siswa)"
                                         :class="{
-                                            'bg-green-100 text-green-800 border-green-200 hover:bg-green-200': (siswa.status_siswa || siswa.status) === 'aktif',
-                                            'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200': (siswa.status_siswa || siswa.status) === 'lulus',
-                                            'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200': (siswa.status_siswa || siswa.status) === 'pindah',
-                                            'bg-red-100 text-red-800 border-red-200 hover:bg-red-200': (siswa.status_siswa || siswa.status) === 'keluar',
-                                            'bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-200': !(siswa.status_siswa || siswa.status),
+                                            'bg-status-success/15 text-status-success': (siswa.status_siswa || siswa.status) === 'aktif',
+                                            'bg-sky-50 text-sky-700': (siswa.status_siswa || siswa.status) === 'lulus',
+                                            'bg-status-warning/15 text-status-warning': (siswa.status_siswa || siswa.status) === 'pindah',
+                                            'bg-status-danger/15 text-status-danger': (siswa.status_siswa || siswa.status) === 'keluar',
+                                            'bg-page text-ink-muted': !(siswa.status_siswa || siswa.status),
                                         }"
-                                        class="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize transition"
+                                        class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize transition hover:brightness-95"
                                         title="Klik untuk ubah status"
                                     >
-                                        {{ siswa.status_siswa || siswa.status || 'Tidak Diketahui' }}
+                                        <span>{{ siswa.status_siswa || siswa.status || 'Tidak Diketahui' }}</span>
                                         <svg class="h-3 w-3 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                                         </svg>
                                     </button>
                                 </td>
-                                <td class="px-6 py-4 text-right space-x-2">
-                                    <button @click="openStatusModal(siswa)" class="text-xs text-amber-600 hover:underline">Ubah Status</button>
-                                    <Link :href="route('admin.siswa.edit', siswa.id)" class="text-xs text-indigo-600 hover:underline">Edit</Link>
-                                    <button @click="deleteSiswa(siswa.id)" class="text-xs text-red-600 hover:underline">Hapus</button>
+                                <td class="whitespace-nowrap px-5 py-3.5 text-right space-x-2">
+                                    <button
+                                        @click="openStatusModal(siswa)"
+                                        class="text-xs font-semibold text-amber-700 hover:text-amber-900 hover:underline"
+                                    >
+                                        Status
+                                    </button>
+                                    <Link
+                                        :href="route('admin.siswa.edit', siswa.id)"
+                                        class="text-xs font-semibold text-brand hover:text-brand-hover hover:underline"
+                                    >
+                                        Edit
+                                    </Link>
+                                    <button
+                                        @click="deleteSiswa(siswa.id)"
+                                        class="text-xs font-semibold text-status-danger hover:underline"
+                                    >
+                                        Hapus
+                                    </button>
+                                </td>
+                            </tr>
+
+                            <tr v-if="!siswaList.data || siswaList.data.length === 0">
+                                <td colspan="6" class="px-5 py-8 text-center text-ink-muted">
+                                    Belum ada data siswa yang cocok dengan kriteria pencarian.
                                 </td>
                             </tr>
                         </tbody>
                     </table>
+                </div>
 
-                    <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
-                        <div class="flex gap-1">
-                            <Link
-                                v-for="(link, i) in siswaList.links"
-                                :key="i"
-                                :href="link.url || '#'"
-                                :class="{'bg-indigo-50 text-indigo-600': link.active, 'text-gray-500': !link.active}"
-                                class="rounded px-3 py-1 text-sm border"
-                                v-html="link.label"
-                            />
-                        </div>
+                <div v-if="siswaList.links && siswaList.links.length > 3" class="flex items-center justify-between border-t border-brand-border bg-white px-5 py-3">
+                    <div class="flex flex-wrap gap-1">
+                        <Link
+                            v-for="(link, i) in siswaList.links"
+                            :key="i"
+                            :href="link.url || '#'"
+                            :class="[
+                                link.active
+                                    ? 'bg-brand-soft text-brand font-semibold border-brand'
+                                    : 'text-ink-muted border-brand-border hover:bg-page hover:text-ink',
+                                !link.url ? 'opacity-50 cursor-not-allowed' : ''
+                            ]"
+                            class="rounded-lg px-3 py-1.5 text-xs border transition-colors"
+                            v-html="link.label"
+                        />
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Modal Ubah Status Siswa -->
-        <div v-if="showStatusModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-            <div class="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
-                <h3 class="text-base font-semibold text-gray-900">Ubah Status Siswa</h3>
-                <p class="mt-1 text-xs text-gray-500">
+        <div v-if="showStatusModal" class="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 backdrop-blur-xs p-4">
+            <div class="w-full max-w-sm rounded-2xl border border-brand-border bg-white p-6 shadow-xl">
+                <h3 class="text-base font-bold text-ink">Ubah Status Siswa</h3>
+                <p class="mt-1 text-xs text-ink-muted">
                     {{ selectedSiswa?.nama_lengkap }} (NIS: {{ selectedSiswa?.nis }})
                 </p>
 
                 <form @submit.prevent="submitUpdateStatus" class="mt-4 space-y-4">
                     <div>
-                        <label class="block text-xs font-medium text-gray-700">Pilih Status Baru</label>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-ink mb-1">Pilih Status Baru</label>
                         <select
                             v-model="statusForm.status_siswa"
-                            class="mt-1 block w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            class="w-full rounded-lg border border-brand-border bg-white px-3 py-2 text-sm text-ink shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-focus"
                             required
                         >
                             <option value="aktif">Aktif</option>
@@ -186,23 +238,23 @@ const deleteSiswa = (id) => {
                             <option value="pindah">Pindah</option>
                             <option value="keluar">Keluar</option>
                         </select>
-                        <div v-if="statusForm.errors.status_siswa" class="mt-1 text-xs text-red-600">
+                        <div v-if="statusForm.errors.status_siswa" class="mt-1 text-xs text-status-danger">
                             {{ statusForm.errors.status_siswa }}
                         </div>
                     </div>
 
-                    <div class="flex justify-end gap-2 pt-2 border-t">
+                    <div class="flex justify-end gap-2 pt-3 border-t border-brand-border">
                         <button
                             type="button"
                             @click="showStatusModal = false"
-                            class="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                            class="rounded-lg border border-brand-border bg-white px-3.5 py-1.5 text-xs font-semibold text-ink hover:bg-brand-soft"
                         >
                             Batal
                         </button>
                         <button
                             type="submit"
                             :disabled="statusForm.processing"
-                            class="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
+                            class="rounded-lg bg-brand px-4 py-1.5 text-xs font-semibold text-white shadow-xs transition hover:bg-brand-hover disabled:opacity-50"
                         >
                             Simpan Perubahan
                         </button>

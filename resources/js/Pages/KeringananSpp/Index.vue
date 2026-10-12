@@ -1,27 +1,51 @@
 <script setup>
-import { ref } from 'vue';
-import { Head, useForm, router } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { Head, useForm, router, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 
 const props = defineProps({
-  programList: Array,
-  daftarSiswa: Object,
-  listKelas: Array,
-  listTahunAjaran: Array,
-  tahunAjaranAktif: String,
-  filters: Object,
+  programList: {
+    type: Array,
+    default: () => [],
+  },
+  daftarSiswa: {
+    type: Object,
+    default: () => ({ data: [] }),
+  },
+  listKelas: {
+    type: Array,
+    default: () => [],
+  },
+  listTahunAjaran: {
+    type: Array,
+    default: () => [],
+  },
+  tahunAjaranAktif: {
+    type: String,
+    default: '2026/2027',
+  },
+  filters: {
+    type: Object,
+    default: () => ({}),
+  },
 });
 
+const page = usePage();
 const activeTab = ref('program'); // 'program' | 'penetapan'
 
+const routePrefix = computed(() => {
+  const role = page.props.auth?.user?.role;
+  return role === 'admin' ? 'admin' : 'bendahara';
+});
+
 // Filter Siswa
-const searchSiswa = ref(props.filters.search || '');
-const kelasFilter = ref(props.filters.kelas_id || '');
+const searchSiswa = ref(props.filters?.search || '');
+const kelasFilter = ref(props.filters?.kelas_id || '');
 const tahunAjaranSelect = ref(props.tahunAjaranAktif);
 
 const applyFilterSiswa = () => {
   router.get(
-    route('bendahara.keringanan-spp.index'),
+    route(`${routePrefix.value}.keringanan-spp.index`),
     {
       search: searchSiswa.value,
       kelas_id: kelasFilter.value,
@@ -71,12 +95,12 @@ const closeProgramModal = () => {
 
 const submitProgram = () => {
   if (isEditingProgram.value) {
-    formProgram.put(route('bendahara.keringanan-spp.update', editingProgramId.value), {
+    formProgram.put(route(`${routePrefix.value}.keringanan-spp.update`, editingProgramId.value), {
       preserveScroll: true,
       onSuccess: () => closeProgramModal(),
     });
   } else {
-    formProgram.post(route('bendahara.keringanan-spp.store'), {
+    formProgram.post(route(`${routePrefix.value}.keringanan-spp.store`), {
       preserveScroll: true,
       onSuccess: () => closeProgramModal(),
     });
@@ -85,7 +109,7 @@ const submitProgram = () => {
 
 const deleteProgram = (id) => {
   if (confirm('Yakin ingin menghapus program keringanan ini?')) {
-    router.delete(route('bendahara.keringanan-spp.destroy', id), { preserveScroll: true });
+    router.delete(route(`${routePrefix.value}.keringanan-spp.destroy`, id), { preserveScroll: true });
   }
 };
 
@@ -122,7 +146,7 @@ const closeSiswaModal = () => {
 };
 
 const submitTetapkan = () => {
-  formTetapkan.post(route('bendahara.keringanan-spp.tetapkan-siswa'), {
+  formTetapkan.post(route(`${routePrefix.value}.keringanan-spp.tetapkan-siswa`), {
     preserveScroll: true,
     onSuccess: () => closeSiswaModal(),
   });
@@ -134,306 +158,347 @@ const formatRupiah = (val) => {
 </script>
 
 <template>
-  <Head title="Keringanan SPP - Bendahara" />
+  <Head title="Program & Penetapan Keringanan SPP" />
 
   <AuthenticatedLayout>
-    <div class="py-8">
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
-        <!-- Header -->
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 class="text-2xl font-bold tracking-tight text-gray-900">Program & Penetapan Keringanan SPP</h1>
-            <p class="text-sm text-gray-500 mt-0.5">Kelola jenis bantuan beasiswa dan tetapkan Surat Keputusan (SK) penerima.</p>
-          </div>
-
-          <!-- Navigasi Tab -->
-          <div class="flex rounded-xl bg-gray-100 p-1">
-            <button
-              @click="activeTab = 'program'"
-              class="px-4 py-2 text-xs font-semibold rounded-lg transition"
-              :class="activeTab === 'program' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'"
-            >
-              Master Program
-            </button>
-            <button
-              @click="activeTab = 'penetapan'"
-              class="px-4 py-2 text-xs font-semibold rounded-lg transition"
-              :class="activeTab === 'penetapan' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'"
-            >
-              Penetapan Siswa
-            </button>
-          </div>
+    <template #header>
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 class="text-xl font-bold tracking-tight text-ink sm:text-2xl">Program & Penetapan Keringanan SPP</h1>
+          <p class="text-xs text-ink-muted sm:text-sm mt-0.5">Kelola skema bantuan beasiswa/keringanan SPP dan tetapkan SK penerima per siswa.</p>
         </div>
 
-        <!-- ================= TAB 1: MASTER PROGRAM ================= -->
-        <div v-if="activeTab === 'program'" class="space-y-4">
-          <div class="flex justify-between items-center">
-            <span class="text-xs font-medium text-gray-500">Daftar skema keringanan aktif & non-aktif</span>
-            <button
-              @click="openCreateProgram"
-              class="inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition"
-            >
-              + Tambah Program Keringanan
-            </button>
-          </div>
+        <!-- Navigasi Tab -->
+        <div class="flex rounded-xl border border-brand-border bg-white p-1 shadow-2xs">
+          <button
+            type="button"
+            @click="activeTab = 'program'"
+            class="rounded-lg px-4 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus"
+            :class="activeTab === 'program' ? 'bg-brand text-white shadow-xs' : 'text-ink-muted hover:bg-page hover:text-ink'"
+          >
+            Master Program ({{ programList.length }})
+          </button>
+          <button
+            type="button"
+            @click="activeTab = 'penetapan'"
+            class="rounded-lg px-4 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus"
+            :class="activeTab === 'penetapan' ? 'bg-brand text-white shadow-xs' : 'text-ink-muted hover:bg-page hover:text-ink'"
+          >
+            Penetapan Siswa
+          </button>
+        </div>
+      </div>
+    </template>
 
-          <div class="overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100">
-            <table class="min-w-full divide-y divide-gray-100 text-sm">
-              <thead class="bg-gray-50 text-[11px] font-bold uppercase tracking-wider text-gray-400">
+    <div class="space-y-6">
+      <!-- ================= TAB 1: MASTER PROGRAM ================= -->
+      <section v-if="activeTab === 'program'" class="space-y-4" aria-label="Master Program Keringanan">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <span class="text-xs font-medium text-ink-muted">Daftar skema keringanan aktif & non-aktif yang terdaftar di sistem</span>
+          <button
+            v-if="['admin', 'bendahara'].includes(page.props.auth?.user?.role)"
+            @click="openCreateProgram"
+            class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            <span>Tambah Program Keringanan</span>
+          </button>
+        </div>
+
+        <div class="overflow-hidden rounded-xl border border-brand-border bg-white shadow-xs">
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-brand-border text-sm">
+              <thead class="bg-brand-soft text-left text-xs uppercase tracking-wide text-ink">
                 <tr>
-                  <th class="px-6 py-4 text-left">Nama Program</th>
-                  <th class="px-6 py-4 text-left">Bentuk Potongan</th>
-                  <th class="px-6 py-4 text-left">Nilai Potongan</th>
-                  <th class="px-6 py-4 text-left">Penerima Aktif</th>
-                  <th class="px-6 py-4 text-left">Status</th>
-                  <th class="px-6 py-4 text-right">Aksi</th>
+                  <th scope="col" class="px-5 py-3 font-semibold">Nama Program</th>
+                  <th scope="col" class="px-5 py-3 font-semibold">Bentuk Potongan</th>
+                  <th scope="col" class="px-5 py-3 font-semibold">Nilai Potongan</th>
+                  <th scope="col" class="px-5 py-3 font-semibold">Penerima Aktif</th>
+                  <th scope="col" class="px-5 py-3 font-semibold">Status</th>
+                  <th scope="col" class="px-5 py-3 text-right font-semibold">Aksi</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-100">
-                <tr v-for="item in programList" :key="item.id" class="hover:bg-gray-50/60">
-                  <td class="px-6 py-4 font-semibold text-gray-900">
+              <tbody class="divide-y divide-brand-border">
+                <tr
+                  v-for="item in programList"
+                  :key="item.id"
+                  class="odd:bg-white even:bg-page/50 transition-colors hover:bg-brand-soft/40"
+                >
+                  <td class="whitespace-nowrap px-5 py-3.5 font-semibold text-ink">
                     {{ item.nama_program }}
-                    <p class="text-xs font-normal text-gray-400 mt-0.5">{{ item.syarat_ketentuan || 'Tidak ada catatan syarat.' }}</p>
+                    <p class="text-xs font-normal text-ink-muted mt-0.5">{{ item.syarat_ketentuan || 'Tidak ada catatan syarat.' }}</p>
                   </td>
-                  <td class="px-6 py-4">
-                    <span class="capitalize text-xs font-medium text-gray-700">
+                  <td class="whitespace-nowrap px-5 py-3.5">
+                    <span class="capitalize text-xs font-medium text-ink">
                       {{ item.tipe_potongan === 'persentase' ? 'Persentase (%)' : 'Nominal Tetap (Rp)' }}
                     </span>
                   </td>
-                  <td class="px-6 py-4 font-semibold text-emerald-600">
+                  <td class="whitespace-nowrap px-5 py-3.5 font-bold tabular-nums text-status-success">
                     {{ item.tipe_potongan === 'persentase' ? `${item.nilai_potongan}%` : formatRupiah(item.nilai_potongan) }}
                   </td>
-                  <td class="px-6 py-4 text-xs font-medium text-gray-600">
+                  <td class="whitespace-nowrap px-5 py-3.5 text-xs font-medium text-ink-muted">
                     {{ item.penerima_count || 0 }} Siswa
                   </td>
-                  <td class="px-6 py-4">
+                  <td class="whitespace-nowrap px-5 py-3.5">
                     <span
-                      class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                      :class="item.aktif ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20' : 'bg-gray-100 text-gray-500'"
+                      class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                      :class="item.aktif ? 'bg-status-success/15 text-status-success' : 'bg-page text-ink-muted border border-brand-border'"
                     >
                       {{ item.aktif ? 'Aktif' : 'Non-Aktif' }}
                     </span>
                   </td>
-                  <td class="px-6 py-4 text-right space-x-3 text-xs font-medium">
-                    <button @click="openEditProgram(item)" class="text-amber-600 hover:text-amber-800">Ubah</button>
-                    <button @click="deleteProgram(item.id)" class="text-rose-600 hover:text-rose-800">Hapus</button>
+                  <td class="whitespace-nowrap px-5 py-3.5 text-right space-x-3 text-xs font-semibold">
+                    <button
+                      @click="openEditProgram(item)"
+                      class="text-brand hover:text-brand-hover hover:underline"
+                    >
+                      Ubah
+                    </button>
+                    <button
+                      @click="deleteProgram(item.id)"
+                      class="text-status-danger hover:underline"
+                    >
+                      Hapus
+                    </button>
                   </td>
                 </tr>
                 <tr v-if="programList.length === 0">
-                  <td colspan="6" class="px-6 py-8 text-center text-xs text-gray-400">Belum ada master program keringanan.</td>
+                  <td colspan="6" class="px-5 py-8 text-center text-ink-muted">
+                    Belum ada master program keringanan yang tercatat.
+                  </td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
+      </section>
 
-        <!-- ================= TAB 2: PENETAPAN SISWA ================= -->
-        <div v-if="activeTab === 'penetapan'" class="space-y-4">
-          <!-- Filter Bar -->
-          <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-wrap items-center justify-between gap-4">
-            <div class="flex items-center gap-4">
-              <div class="flex items-center gap-2">
-                <label class="text-xs font-bold uppercase text-gray-500">Tahun Ajaran:</label>
-                <select
-                  v-model="tahunAjaranSelect"
-                  @change="applyFilterSiswa"
-                  class="text-sm rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                >
-                  <option v-for="ta in listTahunAjaran" :key="ta" :value="ta">{{ ta }}</option>
-                </select>
-              </div>
-
-              <div class="flex items-center gap-2">
-                <label class="text-xs font-bold uppercase text-gray-500">Kelas:</label>
-                <select
-                  v-model="kelasFilter"
-                  @change="applyFilterSiswa"
-                  class="text-sm rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                >
-                  <option value="">Semua Kelas</option>
-                  <option v-for="k in listKelas" :key="k.id" :value="k.id">
-                    {{ k.tingkat }} - {{ k.nama_kelas }}
-                  </option>
-                </select>
-              </div>
+      <!-- ================= TAB 2: PENETAPAN SISWA ================= -->
+      <section v-if="activeTab === 'penetapan'" class="space-y-4" aria-label="Penetapan Keringanan Siswa">
+        <!-- Filter Bar -->
+        <div class="flex flex-col sm:flex-row flex-wrap items-center justify-between gap-4 rounded-xl border border-brand-border bg-white p-4 shadow-xs">
+          <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+            <div class="flex items-center gap-2">
+              <label class="text-xs font-semibold uppercase tracking-wider text-ink-muted">Tahun Ajaran:</label>
+              <select
+                v-model="tahunAjaranSelect"
+                @change="applyFilterSiswa"
+                class="rounded-lg border border-brand-border bg-white px-3 py-1.5 text-xs text-ink shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-focus"
+              >
+                <option v-for="ta in listTahunAjaran" :key="ta" :value="ta">{{ ta }}</option>
+              </select>
             </div>
 
             <div class="flex items-center gap-2">
-              <input
-                type="text"
-                v-model="searchSiswa"
-                @keyup.enter="applyFilterSiswa"
-                placeholder="Cari Nama / NIS..."
-                class="text-sm rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-              <button
-                @click="applyFilterSiswa"
-                class="rounded-lg bg-gray-100 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-200"
+              <label class="text-xs font-semibold uppercase tracking-wider text-ink-muted">Kelas:</label>
+              <select
+                v-model="kelasFilter"
+                @change="applyFilterSiswa"
+                class="rounded-lg border border-brand-border bg-white px-3 py-1.5 text-xs text-ink shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-focus"
               >
-                Cari
-              </button>
+                <option value="">Semua Kelas</option>
+                <option v-for="k in listKelas" :key="k.id" :value="k.id">
+                  {{ k.tingkat }} - {{ k.nama_kelas }}
+                </option>
+              </select>
             </div>
           </div>
 
-          <!-- Tabel Siswa -->
-          <div class="overflow-hidden rounded-2xl bg-white shadow-sm border border-gray-100">
-            <table class="min-w-full divide-y divide-gray-100 text-sm">
-              <thead class="bg-gray-50 text-[11px] font-bold uppercase tracking-wider text-gray-400">
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <input
+              type="search"
+              v-model="searchSiswa"
+              @keyup.enter="applyFilterSiswa"
+              placeholder="Cari Nama / NIS..."
+              class="w-full sm:w-64 rounded-lg border border-brand-border bg-white px-3 py-1.5 text-xs text-ink placeholder:text-ink-muted/80 shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-focus"
+            />
+            <button
+              @click="applyFilterSiswa"
+              class="rounded-lg border border-brand-border bg-white px-3 py-1.5 text-xs font-semibold text-ink shadow-2xs hover:bg-brand-soft"
+            >
+              Cari
+            </button>
+          </div>
+        </div>
+
+        <!-- Tabel Siswa -->
+        <div class="overflow-hidden rounded-xl border border-brand-border bg-white shadow-xs">
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-brand-border text-sm">
+              <thead class="bg-brand-soft text-left text-xs uppercase tracking-wide text-ink">
                 <tr>
-                  <th class="px-6 py-4 text-left">Siswa</th>
-                  <th class="px-6 py-4 text-left">Kelas</th>
-                  <th class="px-6 py-4 text-left">Program Keringanan</th>
-                  <th class="px-6 py-4 text-left">No. SK Bantuan</th>
-                  <th class="px-6 py-4 text-right">Aksi</th>
+                  <th scope="col" class="px-5 py-3 font-semibold">Identitas Siswa</th>
+                  <th scope="col" class="px-5 py-3 font-semibold">Kelas</th>
+                  <th scope="col" class="px-5 py-3 font-semibold">Program Keringanan</th>
+                  <th scope="col" class="px-5 py-3 font-semibold">No. SK Bantuan</th>
+                  <th scope="col" class="px-5 py-3 text-right font-semibold">Aksi</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-gray-100">
-                <tr v-for="s in daftarSiswa.data" :key="s.id" class="hover:bg-gray-50/60">
-                  <td class="px-6 py-4 font-semibold text-gray-900">
+              <tbody class="divide-y divide-brand-border">
+                <tr
+                  v-for="s in (daftarSiswa.data || [])"
+                  :key="s.id"
+                  class="odd:bg-white even:bg-page/50 transition-colors hover:bg-brand-soft/40"
+                >
+                  <td class="whitespace-nowrap px-5 py-3.5 font-semibold text-ink">
                     {{ s.nama_lengkap }}
-                    <p class="text-xs font-normal text-gray-400">NIS: {{ s.nis }}</p>
+                    <p class="text-xs font-normal text-ink-muted">NIS: {{ s.nis }}</p>
                   </td>
-                  <td class="px-6 py-4 text-gray-600">
+                  <td class="whitespace-nowrap px-5 py-3.5 text-ink-muted">
                     {{ s.kelas ? `${s.kelas.tingkat} - ${s.kelas.nama_kelas}` : '-' }}
                   </td>
-                  <td class="px-6 py-4">
+                  <td class="whitespace-nowrap px-5 py-3.5">
                     <span
                       v-if="s.keringanan && s.keringanan.length > 0"
-                      class="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20"
+                      class="inline-flex items-center rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand"
                     >
                       {{ s.keringanan[0].keringanan?.nama_program }}
                     </span>
-                    <span v-else class="text-xs text-gray-400 italic">Tanpa Keringanan (Reguler)</span>
+                    <span v-else class="text-xs text-ink-muted italic">Tanpa Keringanan (Reguler)</span>
                   </td>
-                  <td class="px-6 py-4 text-xs text-gray-600">
+                  <td class="whitespace-nowrap px-5 py-3.5 font-mono text-xs text-ink-muted">
                     {{ s.keringanan && s.keringanan.length > 0 ? (s.keringanan[0].nomor_sk || '-') : '-' }}
                   </td>
-                  <td class="px-6 py-4 text-right">
+                  <td class="whitespace-nowrap px-5 py-3.5 text-right">
                     <button
+                      v-if="['admin', 'bendahara'].includes(page.props.auth?.user?.role)"
                       @click="openTetapkanModal(s)"
-                      class="rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-600 hover:bg-indigo-100"
+                      class="inline-flex items-center rounded-lg bg-brand-soft px-3 py-1.5 text-xs font-semibold text-brand transition hover:bg-brand hover:text-white"
                     >
                       Atur SK Keringanan
                     </button>
                   </td>
                 </tr>
-                <tr v-if="daftarSiswa.data.length === 0">
-                  <td colspan="5" class="px-6 py-8 text-center text-xs text-gray-400">Tidak ada data siswa ditemukan.</td>
+                <tr v-if="!(daftarSiswa.data && daftarSiswa.data.length)">
+                  <td colspan="5" class="px-5 py-8 text-center text-ink-muted">Tidak ada data siswa ditemukan.</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
-      </div>
+      </section>
     </div>
 
     <!-- Modal Form Program Keringanan -->
-    <div v-if="isProgramModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 p-4">
-      <div class="w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden animate-fadeIn">
-        <div class="px-6 py-4 bg-gray-50 border-b flex justify-between items-center">
-          <h3 class="text-base font-semibold text-gray-900">
+    <div v-if="isProgramModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 backdrop-blur-xs p-4">
+      <div class="w-full max-w-md rounded-2xl border border-brand-border bg-white shadow-xl overflow-hidden">
+        <div class="px-6 py-4 bg-brand-soft border-b border-brand-border flex justify-between items-center">
+          <h3 class="text-base font-bold text-ink">
             {{ isEditingProgram ? 'Ubah Program Keringanan' : 'Tambah Program Keringanan' }}
           </h3>
-          <button @click="closeProgramModal" class="text-gray-400 hover:text-gray-600 text-lg">&times;</button>
+          <button @click="closeProgramModal" class="text-ink-muted hover:text-ink text-xl leading-none">&times;</button>
         </div>
 
         <form @submit.prevent="submitProgram" class="p-6 space-y-4">
           <div>
-            <label class="block text-xs font-bold uppercase text-gray-700 mb-1">Nama Program</label>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-ink mb-1">Nama Program</label>
             <input
               type="text"
               v-model="formProgram.nama_program"
               placeholder="Contoh: Beasiswa SKTM / Anak Yatim"
-              class="w-full text-sm rounded-lg border-gray-300"
+              required
+              class="w-full rounded-lg border border-brand-border bg-white px-3 py-2 text-sm text-ink shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-focus"
             />
-            <p v-if="formProgram.errors.nama_program" class="text-xs text-rose-600 mt-1">{{ formProgram.errors.nama_program }}</p>
+            <p v-if="formProgram.errors.nama_program" class="text-xs text-status-danger mt-1">{{ formProgram.errors.nama_program }}</p>
           </div>
 
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-xs font-bold uppercase text-gray-700 mb-1">Tipe Potongan</label>
-              <select v-model="formProgram.tipe_potongan" class="w-full text-sm rounded-lg border-gray-300">
+              <label class="block text-xs font-semibold uppercase tracking-wider text-ink mb-1">Tipe Potongan</label>
+              <select v-model="formProgram.tipe_potongan" class="w-full rounded-lg border border-brand-border bg-white px-3 py-2 text-sm text-ink shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-focus">
                 <option value="nominal">Nominal (Rp)</option>
                 <option value="persentase">Persentase (%)</option>
               </select>
             </div>
             <div>
-              <label class="block text-xs font-bold uppercase text-gray-700 mb-1">Nilai Potongan</label>
+              <label class="block text-xs font-semibold uppercase tracking-wider text-ink mb-1">Nilai Potongan</label>
               <input
                 type="number"
                 v-model="formProgram.nilai_potongan"
                 :placeholder="formProgram.tipe_potongan === 'persentase' ? 'Misal: 50' : 'Misal: 100000'"
-                class="w-full text-sm rounded-lg border-gray-300"
+                required
+                class="w-full rounded-lg border border-brand-border bg-white px-3 py-2 text-sm text-ink shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-focus"
               />
             </div>
           </div>
-          <p v-if="formProgram.errors.nilai_potongan" class="text-xs text-rose-600 mt-1">{{ formProgram.errors.nilai_potongan }}</p>
+          <p v-if="formProgram.errors.nilai_potongan" class="text-xs text-status-danger mt-1">{{ formProgram.errors.nilai_potongan }}</p>
 
           <div>
-            <label class="block text-xs font-bold uppercase text-gray-700 mb-1">Syarat & Ketentuan</label>
-            <textarea v-model="formProgram.syarat_ketentuan" rows="3" class="w-full text-sm rounded-lg border-gray-300"></textarea>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-ink mb-1">Syarat & Ketentuan</label>
+            <textarea
+              v-model="formProgram.syarat_ketentuan"
+              rows="3"
+              placeholder="Catatan persyaratan siswa..."
+              class="w-full rounded-lg border border-brand-border bg-white px-3 py-2 text-sm text-ink shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-focus"
+            ></textarea>
           </div>
 
           <label class="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" v-model="formProgram.aktif" class="rounded text-indigo-600" />
-            <span class="text-xs font-medium text-gray-700">Program Aktif</span>
+            <input type="checkbox" v-model="formProgram.aktif" class="rounded border-brand-border text-brand focus:ring-brand-focus" />
+            <span class="text-xs font-medium text-ink">Program Aktif</span>
           </label>
 
-          <div class="flex justify-end gap-3 pt-3 border-t">
-            <button type="button" @click="closeProgramModal" class="px-4 py-2 text-xs font-semibold text-gray-700 border rounded-lg">Batal</button>
-            <button type="submit" :disabled="formProgram.processing" class="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 rounded-lg">Simpan</button>
+          <div class="flex justify-end gap-3 pt-3 border-t border-brand-border">
+            <button type="button" @click="closeProgramModal" class="rounded-lg border border-brand-border bg-white px-4 py-2 text-xs font-semibold text-ink hover:bg-brand-soft">Batal</button>
+            <button type="submit" :disabled="formProgram.processing" class="rounded-lg bg-brand px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus disabled:opacity-50">
+              {{ formProgram.processing ? 'Menyimpan...' : 'Simpan Program' }}
+            </button>
           </div>
         </form>
       </div>
     </div>
 
     <!-- Modal Penetapan Siswa -->
-    <div v-if="isSiswaModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 p-4">
-      <div class="w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden animate-fadeIn">
-        <div class="px-6 py-4 bg-gray-50 border-b flex justify-between items-center">
+    <div v-if="isSiswaModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 backdrop-blur-xs p-4">
+      <div class="w-full max-w-md rounded-2xl border border-brand-border bg-white shadow-xl overflow-hidden">
+        <div class="px-6 py-4 bg-brand-soft border-b border-brand-border flex justify-between items-center">
           <div>
-            <h3 class="text-base font-semibold text-gray-900">Penetapan SK Keringanan Siswa</h3>
-            <p class="text-xs text-gray-500">{{ selectedSiswa?.nama_lengkap }} ({{ selectedSiswa?.nis }})</p>
+            <h3 class="text-base font-bold text-ink">Penetapan SK Keringanan Siswa</h3>
+            <p class="text-xs text-ink-muted">{{ selectedSiswa?.nama_lengkap }} (NIS: {{ selectedSiswa?.nis }})</p>
           </div>
-          <button @click="closeSiswaModal" class="text-gray-400 hover:text-gray-600 text-lg">&times;</button>
+          <button @click="closeSiswaModal" class="text-ink-muted hover:text-ink text-xl leading-none">&times;</button>
         </div>
 
         <form @submit.prevent="submitTetapkan" class="p-6 space-y-4">
           <div>
-            <label class="block text-xs font-bold uppercase text-gray-700 mb-1">Pilih Program Keringanan</label>
-            <select v-model="formTetapkan.keringanan_spp_id" class="w-full text-sm rounded-lg border-gray-300">
+            <label class="block text-xs font-semibold uppercase tracking-wider text-ink mb-1">Pilih Program Keringanan</label>
+            <select v-model="formTetapkan.keringanan_spp_id" class="w-full rounded-lg border border-brand-border bg-white px-3 py-2 text-sm text-ink shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-focus">
               <option value="">-- Hapus / Reguler (Tanpa Keringanan) --</option>
               <option v-for="prog in programList.filter(p => p.aktif)" :key="prog.id" :value="prog.id">
                 {{ prog.nama_program }} (Potongan: {{ prog.tipe_potongan === 'persentase' ? `${prog.nilai_potongan}%` : formatRupiah(prog.nilai_potongan) }})
               </option>
             </select>
-            <p v-if="formTetapkan.errors.keringanan_spp_id" class="text-xs text-rose-600 mt-1">{{ formTetapkan.errors.keringanan_spp_id }}</p>
+            <p v-if="formTetapkan.errors.keringanan_spp_id" class="text-xs text-status-danger mt-1">{{ formTetapkan.errors.keringanan_spp_id }}</p>
           </div>
 
           <div>
-            <label class="block text-xs font-bold uppercase text-gray-700 mb-1">Nomor Surat Keputusan (SK)</label>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-ink mb-1">Nomor Surat Keputusan (SK)</label>
             <input
               type="text"
               v-model="formTetapkan.nomor_sk"
               placeholder="Contoh: 421.3/088/SK-BEASISWA/2026"
-              class="w-full text-sm rounded-lg border-gray-300"
+              class="w-full rounded-lg border border-brand-border bg-white px-3 py-2 text-sm text-ink shadow-xs focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand-focus"
             />
-            <p v-if="formTetapkan.errors.nomor_sk" class="text-xs text-rose-600 mt-1">{{ formTetapkan.errors.nomor_sk }}</p>
+            <p v-if="formTetapkan.errors.nomor_sk" class="text-xs text-status-danger mt-1">{{ formTetapkan.errors.nomor_sk }}</p>
           </div>
 
           <div>
-            <label class="block text-xs font-bold uppercase text-gray-700 mb-1">Tahun Ajaran Berlaku</label>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-ink mb-1">Tahun Ajaran Berlaku</label>
             <input
               type="text"
               v-model="formTetapkan.tahun_ajaran"
               readonly
-              class="w-full text-sm rounded-lg border-gray-200 bg-gray-50 text-gray-500 cursor-not-allowed"
+              class="w-full rounded-lg border border-brand-border bg-page px-3 py-2 text-sm text-ink-muted cursor-not-allowed shadow-xs"
             />
           </div>
 
-          <div class="flex justify-end gap-3 pt-3 border-t">
-            <button type="button" @click="closeSiswaModal" class="px-4 py-2 text-xs font-semibold text-gray-700 border rounded-lg">Batal</button>
-            <button type="submit" :disabled="formTetapkan.processing" class="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 rounded-lg">Simpan SK</button>
+          <div class="flex justify-end gap-3 pt-3 border-t border-brand-border">
+            <button type="button" @click="closeSiswaModal" class="rounded-lg border border-brand-border bg-white px-4 py-2 text-xs font-semibold text-ink hover:bg-brand-soft">Batal</button>
+            <button type="submit" :disabled="formTetapkan.processing" class="rounded-lg bg-brand px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-focus disabled:opacity-50">
+              {{ formTetapkan.processing ? 'Menyimpan...' : 'Simpan SK' }}
+            </button>
           </div>
         </form>
       </div>

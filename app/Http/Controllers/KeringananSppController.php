@@ -47,7 +47,7 @@ class KeringananSppController extends Controller
             $search = $request->search;
             $siswaQuery->where(function ($q) use ($search) {
                 $q->where('nama_lengkap', 'like', "%{$search}%")
-                  ->orWhere('nis', 'like', "%{$search}%");
+                    ->orWhere('nis', 'like', "%{$search}%");
             });
         }
 
@@ -60,12 +60,12 @@ class KeringananSppController extends Controller
             ->withQueryString();
 
         return Inertia::render('KeringananSpp/Index', [
-            'programList'      => $programList,
-            'daftarSiswa'      => $daftarSiswa,
-            'listKelas'        => Kelas::select('id', 'tingkat', 'nama_kelas')->get(),
-            'listTahunAjaran'  => TarifSpp::select('tahun_ajaran')->distinct()->pluck('tahun_ajaran'),
+            'programList' => $programList,
+            'daftarSiswa' => $daftarSiswa,
+            'listKelas' => Kelas::select('id', 'tingkat', 'nama_kelas')->get(),
+            'listTahunAjaran' => TarifSpp::select('tahun_ajaran')->distinct()->pluck('tahun_ajaran'),
             'tahunAjaranAktif' => $tahunAjaranAktif,
-            'filters'          => $request->only(['search', 'kelas_id', 'tahun_ajaran']),
+            'filters' => $request->only(['search', 'kelas_id', 'tahun_ajaran']),
         ]);
     }
 
@@ -76,7 +76,7 @@ class KeringananSppController extends Controller
 
             return back()->with('success', 'Program keringanan berhasil dibuat.');
         } catch (Throwable $th) {
-            return back()->withErrors(['error' => 'Gagal membuat program: ' . $th->getMessage()]);
+            return back()->withErrors(['error' => 'Gagal membuat program: '.$th->getMessage()]);
         }
     }
 
@@ -87,7 +87,7 @@ class KeringananSppController extends Controller
 
             return back()->with('success', 'Program keringanan berhasil diperbarui.');
         } catch (Throwable $th) {
-            return back()->withErrors(['error' => 'Gagal memperbarui program: ' . $th->getMessage()]);
+            return back()->withErrors(['error' => 'Gagal memperbarui program: '.$th->getMessage()]);
         }
     }
 
@@ -109,7 +109,7 @@ class KeringananSppController extends Controller
 
             return back()->with('success', 'Penetapan SK keringanan siswa berhasil diperbarui.');
         } catch (Throwable $th) {
-            return back()->withErrors(['error' => 'Gagal menetapkan keringanan ke siswa: ' . $th->getMessage()]);
+            return back()->withErrors(['error' => 'Gagal menetapkan keringanan ke siswa: '.$th->getMessage()]);
         }
     }
 }

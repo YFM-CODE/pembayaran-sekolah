@@ -138,4 +138,4 @@ Route::middleware('auth')->prefix('cetak-kuitansi')->name('cetak-kuitansi.')->gr
     Route::get('/{transaksiSpp}/kuitansi', [CetakKuitansiController::class, 'kuitansi'])->name('kuitansi');
 });
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

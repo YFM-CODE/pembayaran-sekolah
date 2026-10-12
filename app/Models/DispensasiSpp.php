@@ -30,8 +30,8 @@ class DispensasiSpp extends Model
     {
         return [
             'tanggal_pengajuan' => 'date',
-            'batas_waktu_baru'  => 'date',
-            'tanggal_diproses'  => 'datetime',
+            'batas_waktu_baru' => 'date',
+            'tanggal_diproses' => 'datetime',
         ];
     }
 

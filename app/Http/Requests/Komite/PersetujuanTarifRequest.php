@@ -49,4 +49,3 @@ class PersetujuanTarifRequest extends FormRequest
         ];
     }
 }
-

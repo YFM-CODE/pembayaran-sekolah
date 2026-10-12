@@ -101,13 +101,13 @@ class SetoranKasirController extends Controller
             }
 
             // Generate nomor setoran unik: STR-YYYYMMDD-XXXX
-            $prefix = 'STR-' . date('Ymd') . '-';
+            $prefix = 'STR-'.date('Ymd').'-';
             $terakhir = SetoranKasir::where('nomor_setoran', 'like', "{$prefix}%")
                 ->orderByDesc('id')
                 ->value('nomor_setoran');
 
             $urutan = $terakhir ? ((int) substr($terakhir, -4)) + 1 : 1;
-            $nomorSetoran = $prefix . str_pad((string) $urutan, 4, '0', STR_PAD_LEFT);
+            $nomorSetoran = $prefix.str_pad((string) $urutan, 4, '0', STR_PAD_LEFT);
 
             // Simpan catatan setoran kasir baru
             $setoran = SetoranKasir::create([
@@ -131,7 +131,7 @@ class SetoranKasirController extends Controller
         } catch (Throwable $th) {
             DB::rollBack();
 
-            return redirect()->back()->withErrors(['error' => 'Gagal menutup kasir: ' . $th->getMessage()]);
+            return redirect()->back()->withErrors(['error' => 'Gagal menutup kasir: '.$th->getMessage()]);
         }
     }
 
@@ -170,7 +170,7 @@ class SetoranKasirController extends Controller
         } catch (Throwable $th) {
             DB::rollBack();
 
-            return redirect()->back()->withErrors(['error' => 'Gagal memverifikasi setoran: ' . $th->getMessage()]);
+            return redirect()->back()->withErrors(['error' => 'Gagal memverifikasi setoran: '.$th->getMessage()]);
         }
     }
 }

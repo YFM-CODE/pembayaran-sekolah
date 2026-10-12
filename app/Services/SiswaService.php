@@ -17,7 +17,7 @@ class SiswaService
         return DB::transaction(function () use ($data) {
             $userId = null;
 
-            if (!empty($data['email'])) {
+            if (! empty($data['email'])) {
                 $user = User::create([
                     'name' => $data['nama_lengkap'],
                     'email' => $data['email'],
@@ -40,13 +40,13 @@ class SiswaService
     public function perbarui(Siswa $siswa, array $data): Siswa
     {
         return DB::transaction(function () use ($siswa, $data) {
-            if (!empty($data['email'])) {
+            if (! empty($data['email'])) {
                 if ($siswa->user) {
                     $updateData = [
                         'name' => $data['nama_lengkap'],
                         'email' => $data['email'],
                     ];
-                    if (!empty($data['password'])) {
+                    if (! empty($data['password'])) {
                         $updateData['password'] = Hash::make($data['password']);
                     }
                     $siswa->user->update($updateData);
@@ -69,6 +69,7 @@ class SiswaService
             }
 
             $siswa->update($dataSiswa);
+
             return $siswa;
         });
     }

@@ -57,7 +57,7 @@ class TarifSppController extends Controller
         } catch (Throwable $th) {
             DB::rollBack();
 
-            return redirect()->back()->withErrors(['error' => 'Gagal menyimpan tarif: ' . $th->getMessage()]);
+            return redirect()->back()->withErrors(['error' => 'Gagal menyimpan tarif: '.$th->getMessage()]);
         }
     }
 
@@ -91,7 +91,7 @@ class TarifSppController extends Controller
         } catch (Throwable $th) {
             DB::rollBack();
 
-            return redirect()->back()->withErrors(['error' => 'Gagal memperbarui tarif: ' . $th->getMessage()]);
+            return redirect()->back()->withErrors(['error' => 'Gagal memperbarui tarif: '.$th->getMessage()]);
         }
     }
 
@@ -125,7 +125,7 @@ class TarifSppController extends Controller
         } catch (Throwable $th) {
             DB::rollBack();
 
-            return redirect()->back()->withErrors(['error' => 'Gagal menghapus tarif: ' . $th->getMessage()]);
+            return redirect()->back()->withErrors(['error' => 'Gagal menghapus tarif: '.$th->getMessage()]);
         }
     }
 
@@ -148,7 +148,7 @@ class TarifSppController extends Controller
         } catch (Throwable $th) {
             DB::rollBack();
 
-            return redirect()->back()->withErrors(['error' => 'Gagal memproses persetujuan komite: ' . $th->getMessage()]);
+            return redirect()->back()->withErrors(['error' => 'Gagal memproses persetujuan komite: '.$th->getMessage()]);
         }
     }
 }
