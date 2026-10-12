@@ -51,5 +51,6 @@
 
     /* Tata letak dan kontrol */
     --container: 1080px;
+    --container-app: 80rem; /* lebar isi halaman dashboard */
     --control-height: 44px; /* target sentuh minimum */
 }

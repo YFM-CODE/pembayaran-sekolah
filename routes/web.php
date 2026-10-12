@@ -54,8 +54,8 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/dashboard', DashboardController::class)->name('dashboard');
-    // Route::get('/dashboard', AdminDashboardController::class)->name('dashboard');
+    // Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/dashboard', AdminDashboardController::class)->name('dashboard');
     Route::resource('tarif-spp', TarifSppController::class);
     Route::resource('keringanan-spp', KeringananSppController::class);
     Route::post('/keringanan-spp/tetapkan-siswa', [KeringananSppController::class, 'tetapkanSiswa'])->name('keringanan-spp.tetapkan-siswa');
@@ -138,4 +138,4 @@ Route::middleware('auth')->prefix('cetak-kuitansi')->name('cetak-kuitansi.')->gr
     Route::get('/{transaksiSpp}/kuitansi', [CetakKuitansiController::class, 'kuitansi'])->name('kuitansi');
 });
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

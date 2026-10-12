@@ -13,6 +13,7 @@ use App\Models\TarifSpp;
 use App\Models\TransaksiSpp;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
 use Throwable;
@@ -40,9 +41,9 @@ class DashboardController extends Controller
                 $totalTagihanCount = TagihanSpp::count();
                 $totalTunggakanNominal = TagihanSpp::where('status', '!=', 'lunas')->sum('sisa_tagihan');
 
-                $ruteTagihan = route()->has('admin.tagihan-siswa.index') 
-                    ? route('admin.tagihan-siswa.index') 
-                    : (route()->has('admin.tagihan-spp.index') ? route('admin.tagihan-spp.index') : null);
+                $ruteTagihan = Route::has('admin.tagihan-siswa.index')
+                    ? route('admin.tagihan-siswa.index')
+                    : (Route::has('admin.tagihan-spp.index') ? route('admin.tagihan-spp.index') : null);
 
                 $ringkasan = [
                     ['label' => 'Total Siswa Terdaftar', 'nilai' => $totalSiswa, 'sub' => "{$siswaAktif} Aktif, {$siswaLulus} Lulus", 'url' => route('admin.siswa.index')],
