@@ -29,6 +29,7 @@ class DispensasiSppController extends Controller
 
         $daftarSiswaTagihan = $tagihanBelumLunas->groupBy('siswa_id')->map(function ($items) {
             $siswa = $items->first()->siswa;
+
             return [
                 'id' => $siswa?->id,
                 'nis' => $siswa?->nis,
@@ -65,13 +66,13 @@ class DispensasiSppController extends Controller
             }
 
             $this->dispensasiRepo->simpan([
-                'tagihan_spp_id'    => $validated['tagihan_spp_id'],
-                'pemohon_id'        => $request->user()->id,
+                'tagihan_spp_id' => $validated['tagihan_spp_id'],
+                'pemohon_id' => $request->user()->id,
                 'tanggal_pengajuan' => now()->toDateString(),
-                'batas_waktu_baru'  => $validated['batas_waktu_baru'],
-                'alasan_penundaan'  => $validated['alasan_penundaan'],
+                'batas_waktu_baru' => $validated['batas_waktu_baru'],
+                'alasan_penundaan' => $validated['alasan_penundaan'],
                 'dokumen_pendukung' => $pathDokumen,
-                'status'            => 'menunggu_persetujuan',
+                'status' => 'menunggu_persetujuan',
             ]);
 
             DB::commit();
@@ -80,7 +81,7 @@ class DispensasiSppController extends Controller
         } catch (Throwable $th) {
             DB::rollBack();
 
-            return redirect()->back()->withErrors(['error' => 'Gagal mengajukan dispensasi: ' . $th->getMessage()]);
+            return redirect()->back()->withErrors(['error' => 'Gagal mengajukan dispensasi: '.$th->getMessage()]);
         }
     }
 
@@ -100,8 +101,8 @@ class DispensasiSppController extends Controller
         DB::beginTransaction();
         try {
             $this->dispensasiRepo->perbarui($dispensasiSpp, [
-                'disetujui_oleh'   => $request->user()->id,
-                'status'           => $validated['status'],
+                'disetujui_oleh' => $request->user()->id,
+                'status' => $validated['status'],
                 'catatan_pimpinan' => $validated['catatan_pimpinan'] ?? null,
                 'tanggal_diproses' => now(),
             ]);
@@ -121,7 +122,7 @@ class DispensasiSppController extends Controller
         } catch (Throwable $th) {
             DB::rollBack();
 
-            return redirect()->back()->withErrors(['error' => 'Gagal memproses persetujuan dispensasi: ' . $th->getMessage()]);
+            return redirect()->back()->withErrors(['error' => 'Gagal memproses persetujuan dispensasi: '.$th->getMessage()]);
         }
     }
 }

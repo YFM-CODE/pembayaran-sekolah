@@ -8,14 +8,20 @@ const props = defineProps({
     filters: Object,
 });
 
-const search = ref(props.filters.search || '');
-const tingkat = ref(props.filters.tingkat || '');
+const search = ref(props.filters?.search || '');
+const tingkat = ref(props.filters?.tingkat || '');
 
 const handleFilter = () => {
     router.get(route('admin.kelas.index'), {
         search: search.value,
         tingkat: tingkat.value,
     }, { preserveState: true, replace: true });
+};
+
+const resetFilter = () => {
+    search.value = '';
+    tingkat.value = '';
+    handleFilter();
 };
 
 const deleteKelas = (id) => {
@@ -26,75 +32,139 @@ const deleteKelas = (id) => {
 </script>
 
 <template>
-    <Head title="Master Data Kelas" />
-
     <AuthenticatedLayout>
+        <Head title="Master Data Kelas" />
+
         <template #header>
-            <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold leading-tight text-gray-800">Master Data Kelas</h2>
-                <Link :href="route('admin.kelas.create')" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
-                    Tambah Kelas
-                </Link>
+            <div class="page-head">
+                <div>
+                    <div class="page-head-eyebrow">Data Akademik</div>
+                    <h2 class="page-head-title">Master Data Kelas</h2>
+                    <p class="page-head-sub">Kelola daftar rombongan belajar, tingkat kelas, dan kompetensi keahlian (jurusan).</p>
+                </div>
+                <div class="page-head-actions">
+                    <Link :href="route('admin.kelas.create')" class="btn-brand">
+                        + Tambah Kelas
+                    </Link>
+                </div>
             </div>
         </template>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-4">
-                <div class="flex gap-4 bg-white p-4 shadow sm:rounded-lg">
-                    <input
-                        v-model="search"
-                        @input="handleFilter"
-                        type="text"
-                        placeholder="Cari kelas atau jurusan..."
-                        class="w-full max-w-sm rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    />
-                    <select
-                        v-model="tingkat"
-                        @change="handleFilter"
-                        class="rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+        <div class="admin-page">
+            <div class="admin-wrap">
+                <!-- Filter Bar -->
+                <div class="filter-card">
+                    <div class="filter-search">
+                        <input
+                            v-model="search"
+                            @input="handleFilter"
+                            type="text"
+                            placeholder="Cari nama kelas atau jurusan..."
+                            class="ui-input"
+                        />
+                    </div>
+                    <div class="filter-select">
+                        <select
+                            v-model="tingkat"
+                            @change="handleFilter"
+                            class="ui-select"
+                        >
+                            <option value="">Semua Tingkat Kelas</option>
+                            <option value="X">Kelas X</option>
+                            <option value="XI">Kelas XI</option>
+                            <option value="XII">Kelas XII</option>
+                        </select>
+                    </div>
+                    <button
+                        v-if="search || tingkat"
+                        type="button"
+                        @click="resetFilter"
+                        class="btn-secondary-ui"
                     >
-                        <option value="">Semua Tingkat</option>
-                        <option value="X">Kelas X</option>
-                        <option value="XI">Kelas XI</option>
-                        <option value="XII">Kelas XII</option>
-                    </select>
+                        Reset
+                    </button>
                 </div>
 
-                <div class="overflow-hidden bg-white shadow sm:rounded-lg">
-                    <table class="min-w-full divide-y divide-gray-200 text-sm">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left font-medium text-gray-500">Tingkat</th>
-                                <th class="px-6 py-3 text-left font-medium text-gray-500">Nama Kelas</th>
-                                <th class="px-6 py-3 text-left font-medium text-gray-500">Jurusan</th>
-                                <th class="px-6 py-3 text-left font-medium text-gray-500">Jumlah Siswa</th>
-                                <th class="px-6 py-3 text-right font-medium text-gray-500">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200">
-                            <tr v-for="item in kelasList.data" :key="item.id">
-                                <td class="px-6 py-4 font-semibold text-gray-700">{{ item.tingkat }}</td>
-                                <td class="px-6 py-4 font-medium text-gray-900">{{ item.nama_kelas }}</td>
-                                <td class="px-6 py-4 text-gray-500">{{ item.jurusan }}</td>
-                                <td class="px-6 py-4 text-gray-500">{{ item.siswa_count }} Siswa</td>
-                                <td class="px-6 py-4 text-right space-x-2">
-                                    <Link :href="route('admin.kelas.edit', item.id)" class="text-xs text-indigo-600 hover:underline">Edit</Link>
-                                    <button @click="deleteKelas(item.id)" class="text-xs text-red-600 hover:underline">Hapus</button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <!-- Tabel Kelas -->
+                <div class="table-card">
+                    <div class="table-scroll">
+                        <table class="ui-table">
+                            <thead>
+                                <tr>
+                                    <th>Tingkat</th>
+                                    <th>Nama Kelas</th>
+                                    <th>Jurusan / Kompetensi</th>
+                                    <th>Jumlah Siswa</th>
+                                    <th class="text-right">Tindakan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="item in kelasList.data" :key="item.id">
+                                    <td>
+                                        <span class="badge-pill badge-info">
+                                            Tingkat {{ item.tingkat }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div style="font-weight: 700; color: var(--color-ink);">{{ item.nama_kelas }}</div>
+                                    </td>
+                                    <td style="color: var(--color-muted);">{{ item.jurusan }}</td>
+                                    <td>
+                                        <span class="badge-pill badge-neutral">
+                                            {{ item.siswa_count || 0 }} Siswa
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="row-actions">
+                                            <Link
+                                                :href="route('admin.kelas.edit', item.id)"
+                                                class="act-btn act-btn-brand"
+                                            >
+                                                Edit
+                                            </Link>
+                                            <button
+                                                type="button"
+                                                @click="deleteKelas(item.id)"
+                                                class="act-btn act-btn-danger"
+                                            >
+                                                Hapus
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
 
-                    <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
-                        <div class="flex gap-1">
-                            <Link
-                                v-for="(link, i) in kelasList.links"
-                                :key="i"
-                                :href="link.url || '#'"
-                                :class="{'bg-indigo-50 text-indigo-600': link.active, 'text-gray-500': !link.active}"
-                                class="rounded px-3 py-1 text-sm border"
-                                v-html="link.label"
-                            />
+                                <tr v-if="!kelasList.data || kelasList.data.length === 0">
+                                    <td colspan="5">
+                                        <div class="empty-state">
+                                            <div class="empty-state-title">Belum Ada Data Kelas</div>
+                                            <p class="empty-state-sub">Silakan tambahkan data kelas baru atau sesuaikan filter pencarian.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div v-if="kelasList.links?.length > 3" class="pagination-bar">
+                        <div class="pagination-info">
+                            Menampilkan {{ kelasList.from || 0 }}–{{ kelasList.to || 0 }} dari {{ kelasList.total || 0 }} kelas
+                        </div>
+                        <div class="pagination-links">
+                            <template v-for="(link, i) in kelasList.links" :key="i">
+                                <Link
+                                    v-if="link.url"
+                                    :href="link.url"
+                                    class="page-link"
+                                    :class="{ 'is-active': link.active }"
+                                    v-html="link.label"
+                                />
+                                <span
+                                    v-else
+                                    class="page-link is-disabled"
+                                    v-html="link.label"
+                                />
+                            </template>
                         </div>
                     </div>
                 </div>
@@ -102,3 +172,4 @@ const deleteKelas = (id) => {
         </div>
     </AuthenticatedLayout>
 </template>
+

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue';
-import { Head, useForm, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, useForm, router, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 
 const props = defineProps({
@@ -10,9 +10,14 @@ const props = defineProps({
 });
 
 const page = usePage();
-const search = ref(props.filters.search || '');
-const status = ref(props.filters.status || '');
+const search = ref(props.filters?.search || '');
+const status = ref(props.filters?.status || '');
 const isGenerateModalOpen = ref(false);
+
+const namaBulan = [
+    '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+];
 
 const generateForm = useForm({
     tahun_ajaran: '2026/2027',
@@ -29,7 +34,11 @@ watch([search, status], ([sVal, stVal]) => {
     );
 });
 
-// Deteksi rute secara dinamis (admin vs bendahara)
+const resetFilter = () => {
+    search.value = '';
+    status.value = '';
+};
+
 const submitGenerate = () => {
     const role = page.props.auth.user.role;
     const targetRoute = role === 'bendahara'
@@ -44,120 +53,232 @@ const submitGenerate = () => {
     });
 };
 
-const formatRupiah = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
+const formatRupiah = (val) =>
+    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
 </script>
 
 <template>
-    <Head title="Daftar Tagihan SPP" />
-
     <AuthenticatedLayout>
+        <Head title="Daftar Tagihan SPP" />
+
         <template #header>
-            <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold leading-tight text-gray-800">Manajemen Tagihan SPP</h2>
-                <button
-                    v-if="['admin', 'bendahara'].includes($page.props.auth.user.role)"
-                    @click="isGenerateModalOpen = true"
-                    class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition"
-                >
-                    ⚡ Generate Tagihan Bulanan
-                </button>
+            <div class="page-head">
+                <div>
+                    <div class="page-head-eyebrow">Operasional Keuangan</div>
+                    <h2 class="page-head-title">Manajemen Tagihan SPP</h2>
+                    <p class="page-head-sub">Pantau status tagihan siswa dan terbitkan tagihan SPP bulanan secara otomatis.</p>
+                </div>
+                <div class="page-head-actions">
+                    <button
+                        v-if="['admin', 'bendahara'].includes($page.props.auth.user.role)"
+                        type="button"
+                        @click="isGenerateModalOpen = true"
+                        class="btn-brand"
+                    >
+                        + Generate Tagihan Bulanan
+                    </button>
+                </div>
             </div>
         </template>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-4">
+        <div class="admin-page">
+            <div class="admin-wrap">
                 <!-- Filter Bar -->
-                <div class="flex gap-4">
-                    <input v-model="search" type="text" placeholder="Cari NIS, Nama Siswa, No Tagihan..." class="w-72 rounded-md border-gray-300 shadow-sm" />
-                    <select v-model="status" class="rounded-md border-gray-300 shadow-sm">
-                        <option value="">Semua Status</option>
-                        <option value="belum_bayar">Belum Bayar</option>
-                        <option value="belum_lunas">Belum Lunas / Sebagian</option>
-                        <option value="lunas">Lunas</option>
-                    </select>
+                <div class="filter-card">
+                    <div class="filter-search">
+                        <input
+                            v-model="search"
+                            type="text"
+                            placeholder="Cari NIS, nama siswa, atau nomor tagihan..."
+                            class="ui-input"
+                        />
+                    </div>
+                    <div class="filter-select">
+                        <select v-model="status" class="ui-select">
+                            <option value="">Semua Status Pembayaran</option>
+                            <option value="belum_bayar">Belum Bayar</option>
+                            <option value="belum_lunas">Belum Lunas / Sebagian</option>
+                            <option value="lunas">Lunas</option>
+                        </select>
+                    </div>
+                    <button
+                        v-if="search || status"
+                        type="button"
+                        @click="resetFilter"
+                        class="btn-secondary-ui"
+                    >
+                        Reset
+                    </button>
                 </div>
 
-                <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                    <div class="p-6">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
+                <!-- Tabel Tagihan -->
+                <div class="table-card">
+                    <div class="table-scroll">
+                        <table class="ui-table">
+                            <thead>
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Siswa</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Periode</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Nominal Asli</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Potongan</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Total Tagihan</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Sisa</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Status</th>
+                                    <th>Siswa & Kelas</th>
+                                    <th>Periode</th>
+                                    <th>Nominal Asli</th>
+                                    <th>Potongan</th>
+                                    <th>Total Tagihan</th>
+                                    <th>Sisa Tagihan</th>
+                                    <th>Status</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-200 bg-white">
+                            <tbody>
                                 <tr v-for="item in (props.tagihan?.data || props.tagihan || [])" :key="item.id">
-                                    <td class="whitespace-nowrap px-6 py-4">
-                                        <div class="font-medium text-gray-900">{{ item.siswa?.nama_lengkap }}</div>
-                                        <div class="text-xs text-gray-500">{{ item.siswa?.nis }} - {{ item.siswa?.kelas ? `${item.siswa?.kelas?.tingkat} ${item.siswa?.kelas?.nama_kelas}` : '-' }}</div>
+                                    <td>
+                                        <div style="font-weight: 700; color: var(--color-ink);">{{ item.siswa?.nama_lengkap || '-' }}</div>
+                                        <div style="font-size: 0.78125rem; color: var(--color-muted); margin-top: 0.125rem;">
+                                            NIS: {{ item.siswa?.nis || '-' }} &bull;
+                                            {{ item.siswa?.kelas ? `${item.siswa.kelas.tingkat} ${item.siswa.kelas.nama_kelas}` : '-' }}
+                                        </div>
                                     </td>
-                                    <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-700">Bulan {{ item.bulan }} / {{ item.tahun }}</td>
-                                    <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-600">{{ formatRupiah(item.nominal_asli) }}</td>
-                                    <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-emerald-600">
-                                        {{ item.nominal_potongan > 0 ? `-${formatRupiah(item.nominal_potongan)}` : '-' }}
+                                    <td>
+                                        <div style="font-weight: 600; color: var(--color-ink);">
+                                            {{ namaBulan[item.bulan] || `Bulan ${item.bulan}` }} {{ item.tahun }}
+                                        </div>
+                                        <div v-if="item.nomor_tagihan" style="font-size: 0.75rem; color: var(--color-muted);">
+                                            {{ item.nomor_tagihan }}
+                                        </div>
                                     </td>
-                                    <td class="whitespace-nowrap px-6 py-4 font-semibold text-gray-900">
+                                    <td style="color: var(--color-muted);">{{ formatRupiah(item.nominal_asli) }}</td>
+                                    <td>
+                                        <span v-if="item.nominal_potongan > 0" style="font-weight: 600; color: var(--color-brand);">
+                                            -{{ formatRupiah(item.nominal_potongan) }}
+                                        </span>
+                                        <span v-else style="color: var(--color-muted);">-</span>
+                                    </td>
+                                    <td style="font-weight: 700; color: var(--color-ink);">
                                         {{ formatRupiah(item.nominal_tagihan ?? item.total_harus_bayar) }}
                                     </td>
-                                    <td class="whitespace-nowrap px-6 py-4 font-semibold text-rose-600">{{ formatRupiah(item.sisa_tagihan) }}</td>
-                                    <td class="whitespace-nowrap px-6 py-4">
+                                    <td>
                                         <span
-                                            :class="{
-                                                'bg-emerald-100 text-emerald-800': item.status === 'lunas',
-                                                'bg-amber-100 text-amber-800': ['sebagian', 'belum_lunas'].includes(item.status),
-                                                'bg-rose-100 text-rose-800': item.status === 'belum_bayar'
+                                            :style="{
+                                                fontWeight: 700,
+                                                color: item.sisa_tagihan > 0 ? '#a1342c' : 'var(--color-brand)',
                                             }"
-                                            class="rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize"
                                         >
+                                            {{ formatRupiah(item.sisa_tagihan) }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span
+                                            class="badge-pill"
+                                            :class="{
+                                                'badge-success': item.status === 'lunas',
+                                                'badge-warning': ['sebagian', 'belum_lunas'].includes(item.status),
+                                                'badge-danger': item.status === 'belum_bayar',
+                                            }"
+                                        >
+                                            <span class="badge-dot"></span>
                                             {{ (item.status || '').replace('_', ' ') }}
                                         </span>
                                     </td>
                                 </tr>
 
                                 <tr v-if="!(props.tagihan?.data?.length || props.tagihan?.length)">
-                                    <td colspan="7" class="px-6 py-8 text-center text-sm text-gray-400">
-                                        Belum ada tagihan yang diterbitkan.
+                                    <td colspan="7">
+                                        <div class="empty-state">
+                                            <div class="empty-state-title">Belum Ada Tagihan SPP</div>
+                                            <p class="empty-state-sub">Silakan gunakan tombol "Generate Tagihan Bulanan" atau ubah filter pencarian Anda.</p>
+                                        </div>
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Pagination -->
+                    <div v-if="props.tagihan?.links?.length > 3" class="pagination-bar">
+                        <div class="pagination-info">
+                            Menampilkan {{ props.tagihan.from || 0 }}–{{ props.tagihan.to || 0 }} dari {{ props.tagihan.total || 0 }} tagihan
+                        </div>
+                        <div class="pagination-links">
+                            <template v-for="(link, i) in props.tagihan.links" :key="i">
+                                <Link
+                                    v-if="link.url"
+                                    :href="link.url"
+                                    class="page-link"
+                                    :class="{ 'is-active': link.active }"
+                                    v-html="link.label"
+                                />
+                                <span
+                                    v-else
+                                    class="page-link is-disabled"
+                                    v-html="link.label"
+                                />
+                            </template>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Modal Generate -->
-        <div v-if="isGenerateModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-                <h3 class="mb-4 text-lg font-bold text-gray-900">Generate Tagihan Bulanan</h3>
-                <form @submit.prevent="submitGenerate" class="space-y-4">
+        <!-- Modal Generate Tagihan Bulanan -->
+        <div v-if="isGenerateModalOpen" class="modal-backdrop" @click.self="isGenerateModalOpen = false">
+            <div class="modal-box">
+                <div class="modal-header">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Tahun Ajaran</label>
-                        <input v-model="generateForm.tahun_ajaran" type="text" required class="mt-1 w-full rounded-md border-gray-300" />
+                        <h3 class="modal-title">Generate Tagihan Bulanan</h3>
+                        <p class="modal-subtitle">Terbitkan tagihan SPP untuk seluruh siswa aktif pada periode terpilih.</p>
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
+                    <button type="button" @click="isGenerateModalOpen = false" class="modal-close">&times;</button>
+                </div>
+
+                <form @submit.prevent="submitGenerate">
+                    <div class="modal-body">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Bulan (1-12)</label>
-                            <input v-model="generateForm.bulan" type="number" min="1" max="12" required class="mt-1 w-full rounded-md border-gray-300" />
+                            <label class="ui-label">Tahun Ajaran</label>
+                            <input
+                                v-model="generateForm.tahun_ajaran"
+                                type="text"
+                                placeholder="2026/2027"
+                                required
+                                class="ui-input"
+                            />
+                            <p v-if="generateForm.errors.tahun_ajaran" class="ui-error">{{ generateForm.errors.tahun_ajaran }}</p>
                         </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="ui-label">Bulan Tagihan (1–12)</label>
+                                <select v-model="generateForm.bulan" required class="ui-select">
+                                    <option v-for="m in 12" :key="m" :value="m">{{ m }} - {{ namaBulan[m] }}</option>
+                                </select>
+                                <p v-if="generateForm.errors.bulan" class="ui-error">{{ generateForm.errors.bulan }}</p>
+                            </div>
+                            <div>
+                                <label class="ui-label">Tahun</label>
+                                <input
+                                    v-model="generateForm.tahun"
+                                    type="number"
+                                    min="2020"
+                                    required
+                                    class="ui-input"
+                                />
+                                <p v-if="generateForm.errors.tahun" class="ui-error">{{ generateForm.errors.tahun }}</p>
+                            </div>
+                        </div>
+
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Tahun</label>
-                            <input v-model="generateForm.tahun" type="number" min="2020" required class="mt-1 w-full rounded-md border-gray-300" />
+                            <label class="ui-label">Tanggal Jatuh Tempo</label>
+                            <input
+                                v-model="generateForm.jatuh_tempo"
+                                type="date"
+                                required
+                                class="ui-input"
+                            />
+                            <p v-if="generateForm.errors.jatuh_tempo" class="ui-error">{{ generateForm.errors.jatuh_tempo }}</p>
                         </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Tanggal Jatuh Tempo</label>
-                        <input v-model="generateForm.jatuh_tempo" type="date" required class="mt-1 w-full rounded-md border-gray-300" />
-                    </div>
-                    <div class="flex justify-end space-x-2 pt-2">
-                        <button type="button" @click="isGenerateModalOpen = false" class="rounded-md border px-4 py-2 text-sm text-gray-600">Batal</button>
-                        <button type="submit" :disabled="generateForm.processing" class="rounded-md bg-emerald-600 px-4 py-2 text-sm text-white disabled:opacity-50">
+
+                    <div class="modal-footer">
+                        <button type="button" @click="isGenerateModalOpen = false" class="btn-secondary-ui">
+                            Batal
+                        </button>
+                        <button type="submit" :disabled="generateForm.processing" class="btn-brand">
                             {{ generateForm.processing ? 'Memproses...' : 'Mulai Generate' }}
                         </button>
                     </div>

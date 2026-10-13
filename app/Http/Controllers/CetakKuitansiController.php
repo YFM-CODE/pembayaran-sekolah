@@ -25,7 +25,7 @@ class CetakKuitansiController extends Controller
                 'isPdfDownload' => true,
             ])->setPaper('a5', 'landscape');
 
-            return $pdf->download('Kuitansi-' . $transaksi->nomor_kuitansi . '.pdf');
+            return $pdf->download('Kuitansi-'.$transaksi->nomor_kuitansi.'.pdf');
         }
 
         // Tampilan Cetak Layar Browser

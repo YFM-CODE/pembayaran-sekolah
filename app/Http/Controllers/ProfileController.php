@@ -18,9 +18,28 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        $user = $request->user()->loadMissing('siswa.kelas');
+        $siswa = $user->siswa;
+
         return Inertia::render('Profile/Edit', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+            'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status' => session('status'),
+            'infoAkun' => [
+                'id' => $user->id,
+                'is_active' => (bool) ($user->is_active ?? true),
+                'email_verified_at' => $user->email_verified_at?->toIso8601String(),
+                'terdaftar_pada' => $user->created_at?->toIso8601String(),
+                'diperbarui_pada' => $user->updated_at?->toIso8601String(),
+            ],
+            'profilSiswa' => $siswa ? [
+                'nis' => $siswa->nis,
+                'nisn' => $siswa->nisn,
+                'nama_lengkap' => $siswa->nama_lengkap,
+                'status_siswa' => $siswa->status_siswa,
+                'nama_kelas' => $siswa->kelas?->nama_kelas,
+                'tingkat' => $siswa->kelas?->tingkat,
+                'jurusan' => $siswa->kelas?->jurusan,
+            ] : null,
         ]);
     }
 

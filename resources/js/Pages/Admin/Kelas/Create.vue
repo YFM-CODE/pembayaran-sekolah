@@ -14,42 +14,74 @@ const submit = () => {
 </script>
 
 <template>
-    <Head title="Tambah Kelas" />
-
     <AuthenticatedLayout>
+        <Head title="Tambah Kelas" />
+
         <template #header>
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">Tambah Kelas</h2>
+            <div class="page-head">
+                <div>
+                    <div class="page-head-eyebrow">Master Data Kelas</div>
+                    <h2 class="page-head-title">Tambah Kelas Baru</h2>
+                    <p class="page-head-sub">Tambahkan rombongan belajar baru beserta tingkat dan kompetensi keahlian.</p>
+                </div>
+                <div class="page-head-actions">
+                    <Link :href="route('admin.kelas.index')" class="btn-secondary-ui">
+                        &larr; Kembali ke Daftar
+                    </Link>
+                </div>
+            </div>
         </template>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-2xl sm:px-6 lg:px-8">
-                <div class="bg-white p-6 shadow sm:rounded-lg">
-                    <form @submit.prevent="submit" class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Tingkat</label>
-                            <select v-model="form.tingkat" class="mt-1 w-full rounded-md border-gray-300 shadow-sm" required>
-                                <option value="X">X (Sepuluh)</option>
-                                <option value="XI">XI (Sebelas)</option>
-                                <option value="XII">XII (Dua Belas)</option>
-                            </select>
-                            <div v-if="form.errors.tingkat" class="mt-1 text-xs text-red-600">{{ form.errors.tingkat }}</div>
+        <div class="admin-page">
+            <div class="admin-wrap-narrow">
+                <div class="form-panel">
+                    <form @submit.prevent="submit" class="space-y-5">
+                        <div class="form-section-head">
+                            <h3 class="form-section-title">Identitas Rombongan Belajar</h3>
+                            <p class="form-section-sub">Pastikan penamaan kelas seragam untuk mempermudah pengelompokan tagihan SPP.</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="ui-label">Tingkat Kelas</label>
+                                <select v-model="form.tingkat" class="ui-select" required>
+                                    <option value="X">X (Sepuluh)</option>
+                                    <option value="XI">XI (Sebelas)</option>
+                                    <option value="XII">XII (Dua Belas)</option>
+                                </select>
+                                <div v-if="form.errors.tingkat" class="ui-error">{{ form.errors.tingkat }}</div>
+                            </div>
+
+                            <div>
+                                <label class="ui-label">Nama Kelas</label>
+                                <input
+                                    v-model="form.nama_kelas"
+                                    placeholder="Misal: X RPL 1"
+                                    type="text"
+                                    class="ui-input"
+                                    required
+                                />
+                                <div v-if="form.errors.nama_kelas" class="ui-error">{{ form.errors.nama_kelas }}</div>
+                            </div>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Nama Kelas</label>
-                            <input v-model="form.nama_kelas" placeholder="Misal: X RPL 1" type="text" class="mt-1 w-full rounded-md border-gray-300 shadow-sm" required />
-                            <div v-if="form.errors.nama_kelas" class="mt-1 text-xs text-red-600">{{ form.errors.nama_kelas }}</div>
+                            <label class="ui-label">Jurusan / Kompetensi Keahlian</label>
+                            <input
+                                v-model="form.jurusan"
+                                placeholder="Misal: Rekayasa Perangkat Lunak"
+                                type="text"
+                                class="ui-input"
+                                required
+                            />
+                            <div v-if="form.errors.jurusan" class="ui-error">{{ form.errors.jurusan }}</div>
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Jurusan</label>
-                            <input v-model="form.jurusan" placeholder="Misal: Rekayasa Perangkat Lunak" type="text" class="mt-1 w-full rounded-md border-gray-300 shadow-sm" required />
-                            <div v-if="form.errors.jurusan" class="mt-1 text-xs text-red-600">{{ form.errors.jurusan }}</div>
-                        </div>
-
-                        <div class="flex items-center justify-end gap-3 pt-4 border-t">
-                            <Link :href="route('admin.kelas.index')" class="rounded-md border px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Batal</Link>
-                            <button type="submit" :disabled="form.processing" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">Simpan</button>
+                        <div class="form-footer">
+                            <Link :href="route('admin.kelas.index')" class="btn-secondary-ui">Batal</Link>
+                            <button type="submit" :disabled="form.processing" class="btn-brand">
+                                {{ form.processing ? 'Menyimpan...' : 'Simpan Kelas' }}
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -57,3 +89,4 @@ const submit = () => {
         </div>
     </AuthenticatedLayout>
 </template>
+

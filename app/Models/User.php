@@ -5,7 +5,6 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 // use Database\Factories\UserFactory;
 use App\Enums\PeranPengguna;
-use App\Models\Siswa;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -30,7 +29,7 @@ class User extends Authenticatable
         'password',
         'role',
         'is_active',
-        'email_verified_at'
+        'email_verified_at',
     ];
 
     protected $hidden = [

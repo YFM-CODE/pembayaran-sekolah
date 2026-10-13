@@ -139,7 +139,7 @@ class UserController extends Controller
             return redirect()->route('admin.users.index')
                 ->with('success', 'Pengguna berhasil dihapus.');
         } catch (Throwable $th) {
-            return back()->withErrors(['error' => 'Gagal menghapus pengguna: ' . $th->getMessage()]);
+            return back()->withErrors(['error' => 'Gagal menghapus pengguna: '.$th->getMessage()]);
         }
     }
 }

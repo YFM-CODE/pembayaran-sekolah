@@ -9,7 +9,6 @@ use App\Models\Siswa;
 use App\Models\TarifSpp;
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -18,68 +17,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $passwordStandar = Hash::make('password');
-
         // 1. Akun Pengguna berdasarkan Peran (PeranPengguna Enum)
-        $admin = User::firstOrCreate(
-            ['email' => 'admin@sekolah.sch.id'],
-            [
-                'name' => 'Administrator Utama',
-                'password' => $passwordStandar,
-                'role' => PeranPengguna::ADMIN,
-                'email_verified_at' => now(),
-            ]
-        );
+        $this->call(UserSeeder::class);
 
-        $bendahara = User::firstOrCreate(
-            ['email' => 'bendahara@sekolah.sch.id'],
-            [
-                'name' => 'Hj. Siti Aminah, S.E. (Bendahara)',
-                'password' => $passwordStandar,
-                'role' => PeranPengguna::BENDAHARA,
-                'email_verified_at' => now(),
-            ]
-        );
-
-        $stafTu = User::firstOrCreate(
-            ['email' => 'tu@sekolah.sch.id'],
-            [
-                'name' => 'Budi Santoso (Kasir Loket TU)',
-                'password' => $passwordStandar,
-                'role' => PeranPengguna::STAF_TU,
-                'email_verified_at' => now(),
-            ]
-        );
-
-        $kepsek = User::firstOrCreate(
-            ['email' => 'kepsek@sekolah.sch.id'],
-            [
-                'name' => 'Drs. H. Ahmad Fauzi, M.Pd. (Kepala Sekolah)',
-                'password' => $passwordStandar,
-                'role' => PeranPengguna::KEPALA_SEKOLAH,
-                'email_verified_at' => now(),
-            ]
-        );
-
-        $komite = User::firstOrCreate(
-            ['email' => 'komite@sekolah.sch.id'],
-            [
-                'name' => 'Ir. Bambang Wijaya (Ketua Komite)',
-                'password' => $passwordStandar,
-                'role' => PeranPengguna::KOMITE_SEKOLAH,
-                'email_verified_at' => now(),
-            ]
-        );
-
-        $userSiswa = User::firstOrCreate(
-            ['email' => 'siswa@sekolah.sch.id'],
-            [
-                'name' => 'Muhammad Rizky Pratama',
-                'password' => $passwordStandar,
-                'role' => PeranPengguna::SISWA,
-                'email_verified_at' => now(),
-            ]
-        );
+        $userSiswa = User::where('email', 'siswa@sekolah.sch.id')->first();
 
         // 2. Data Master Kelas
         $kelas10Rpl = Kelas::firstOrCreate(

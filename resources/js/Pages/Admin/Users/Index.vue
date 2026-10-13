@@ -9,14 +9,20 @@ const props = defineProps({
     filters: Object,
 });
 
-const search = ref(props.filters.search || '');
-const roleFilter = ref(props.filters.role || '');
+const search = ref(props.filters?.search || '');
+const roleFilter = ref(props.filters?.role || '');
 
 const handleFilter = () => {
     router.get(route('admin.users.index'), {
         search: search.value,
         role: roleFilter.value,
     }, { preserveState: true, replace: true });
+};
+
+const resetFilter = () => {
+    search.value = '';
+    roleFilter.value = '';
+    handleFilter();
 };
 
 const toggleStatus = (id) => {
@@ -41,6 +47,7 @@ const resetForm = useForm({
 const openResetModal = (user) => {
     selectedUser.value = user;
     resetForm.reset();
+    resetForm.clearErrors();
     resetModal.value = true;
 };
 
@@ -52,109 +59,221 @@ const submitReset = () => {
         },
     });
 };
+
+const roleLabel = (role) => {
+    const map = {
+        admin: 'Administrator',
+        bendahara: 'Bendahara',
+        kepsek: 'Kepala Sekolah',
+        siswa: 'Siswa / Wali',
+    };
+    return map[role] || role;
+};
 </script>
 
 <template>
-    <Head title="Manajemen Pengguna" />
-
     <AuthenticatedLayout>
+        <Head title="Manajemen Pengguna" />
+
         <template #header>
-            <div class="flex items-center justify-between">
-                <h2 class="text-xl font-semibold leading-tight text-gray-800">Manajemen Pengguna</h2>
-                <Link :href="route('admin.users.create')" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
-                    Tambah Pengguna
-                </Link>
+            <div class="page-head">
+                <div>
+                    <div class="page-head-eyebrow">Administrasi Sistem</div>
+                    <h2 class="page-head-title">Manajemen Pengguna</h2>
+                    <p class="page-head-sub">Kelola akun akses portal untuk Administrator, Bendahara, Kepala Sekolah, dan Siswa.</p>
+                </div>
+                <div class="page-head-actions">
+                    <Link :href="route('admin.users.create')" class="btn-brand">
+                        + Tambah Pengguna
+                    </Link>
+                </div>
             </div>
         </template>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-7xl sm:px-6 lg:px-8 space-y-4">
-                <div class="flex gap-4 bg-white p-4 shadow sm:rounded-lg">
-                    <input
-                        v-model="search"
-                        @input="handleFilter"
-                        type="text"
-                        placeholder="Cari nama atau email..."
-                        class="w-full max-w-sm rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    />
-                    <select
-                        v-model="roleFilter"
-                        @change="handleFilter"
-                        class="rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+        <div class="admin-page">
+            <div class="admin-wrap">
+                <!-- Filter Bar -->
+                <div class="filter-card">
+                    <div class="filter-search">
+                        <input
+                            v-model="search"
+                            @input="handleFilter"
+                            type="text"
+                            placeholder="Cari nama pengguna atau alamat email..."
+                            class="ui-input"
+                        />
+                    </div>
+                    <div class="filter-select">
+                        <select
+                            v-model="roleFilter"
+                            @change="handleFilter"
+                            class="ui-select"
+                        >
+                            <option value="">Semua Peran Akun</option>
+                            <option v-for="role in roles" :key="role" :value="role">
+                                {{ roleLabel(role) }}
+                            </option>
+                        </select>
+                    </div>
+                    <button
+                        v-if="search || roleFilter"
+                        type="button"
+                        @click="resetFilter"
+                        class="btn-secondary-ui"
                     >
-                        <option value="">Semua Peran</option>
-                        <option v-for="role in roles" :key="role" :value="role">{{ role }}</option>
-                    </select>
+                        Reset
+                    </button>
                 </div>
 
-                <div class="overflow-hidden bg-white shadow sm:rounded-lg">
-                    <table class="min-w-full divide-y divide-gray-200 text-sm">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left font-medium text-gray-500">Nama</th>
-                                <th class="px-6 py-3 text-left font-medium text-gray-500">Email</th>
-                                <th class="px-6 py-3 text-left font-medium text-gray-500">Peran</th>
-                                <th class="px-6 py-3 text-left font-medium text-gray-500">Status</th>
-                                <th class="px-6 py-3 text-right font-medium text-gray-500">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200">
-                            <tr v-for="user in users.data" :key="user.id">
-                                <td class="px-6 py-4 font-medium text-gray-900">{{ user.name }}</td>
-                                <td class="px-6 py-4 text-gray-500">{{ user.email }}</td>
-                                <td class="px-6 py-4 text-gray-500 capitalize">{{ user.role }}</td>
-                                <td class="px-6 py-4">
-                                    <span :class="user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" class="rounded-full px-2.5 py-0.5 text-xs font-semibold">
-                                        {{ user.is_active ? 'Aktif' : 'Nonaktif' }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 text-right space-x-2">
-                                    <button @click="toggleStatus(user.id)" class="text-xs text-yellow-600 hover:underline">Ubah Status</button>
-                                    <button @click="openResetModal(user)" class="text-xs text-purple-600 hover:underline">Reset Sandi</button>
-                                    <Link :href="route('admin.users.edit', user.id)" class="text-xs text-indigo-600 hover:underline">Edit</Link>
-                                    <button
-                                        v-if="user.id !== $page.props.auth.user.id"
-                                        @click="deleteUser(user)"
-                                        class="text-xs text-red-600 hover:underline"
-                                    >
-                                        Hapus
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <!-- Tabel Pengguna -->
+                <div class="table-card">
+                    <div class="table-scroll">
+                        <table class="ui-table">
+                            <thead>
+                                <tr>
+                                    <th>Nama Pengguna</th>
+                                    <th>Email Login</th>
+                                    <th>Peran</th>
+                                    <th>Status Akun</th>
+                                    <th class="text-right">Tindakan</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="user in users.data" :key="user.id">
+                                    <td>
+                                        <div style="font-weight: 700; color: var(--color-ink);">{{ user.name }}</div>
+                                    </td>
+                                    <td style="color: var(--color-muted);">{{ user.email }}</td>
+                                    <td>
+                                        <span class="badge-pill badge-info">
+                                            {{ roleLabel(user.role) }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span
+                                            class="badge-pill"
+                                            :class="user.is_active ? 'badge-success' : 'badge-danger'"
+                                        >
+                                            <span class="badge-dot"></span>
+                                            {{ user.is_active ? 'Aktif' : 'Nonaktif' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="row-actions">
+                                            <button
+                                                type="button"
+                                                @click="toggleStatus(user.id)"
+                                                class="act-btn act-btn-warn"
+                                            >
+                                                {{ user.is_active ? 'Nonaktifkan' : 'Aktifkan' }}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                @click="openResetModal(user)"
+                                                class="act-btn"
+                                            >
+                                                Reset Sandi
+                                            </button>
+                                            <Link
+                                                :href="route('admin.users.edit', user.id)"
+                                                class="act-btn act-btn-brand"
+                                            >
+                                                Edit
+                                            </Link>
+                                            <button
+                                                v-if="user.id !== $page.props.auth.user.id"
+                                                type="button"
+                                                @click="deleteUser(user)"
+                                                class="act-btn act-btn-danger"
+                                            >
+                                                Hapus
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
 
-                    <div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
-                        <div class="flex gap-1">
-                            <Link
-                                v-for="(link, i) in users.links"
-                                :key="i"
-                                :href="link.url || '#'"
-                                :class="{'bg-indigo-50 text-indigo-600': link.active, 'text-gray-500': !link.active}"
-                                class="rounded px-3 py-1 text-sm border"
-                                v-html="link.label"
-                            />
+                                <tr v-if="!users.data || users.data.length === 0">
+                                    <td colspan="5">
+                                        <div class="empty-state">
+                                            <div class="empty-state-title">Tidak Ada Pengguna Ditemukan</div>
+                                            <p class="empty-state-sub">Coba sesuaikan kata kunci pencarian atau tambah pengguna baru.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div v-if="users.links?.length > 3" class="pagination-bar">
+                        <div class="pagination-info">
+                            Menampilkan {{ users.from || 0 }}–{{ users.to || 0 }} dari {{ users.total || 0 }} pengguna
+                        </div>
+                        <div class="pagination-links">
+                            <template v-for="(link, i) in users.links" :key="i">
+                                <Link
+                                    v-if="link.url"
+                                    :href="link.url"
+                                    class="page-link"
+                                    :class="{ 'is-active': link.active }"
+                                    v-html="link.label"
+                                />
+                                <span
+                                    v-else
+                                    class="page-link is-disabled"
+                                    v-html="link.label"
+                                />
+                            </template>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div v-if="resetModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div class="w-full max-w-md bg-white p-6 rounded-lg shadow">
-                <h3 class="text-lg font-semibold mb-4">Reset Sandi: {{ selectedUser?.name }}</h3>
-                <form @submit.prevent="submitReset" class="space-y-4">
+        <!-- Modal Reset Kata Sandi -->
+        <div v-if="resetModal" class="modal-backdrop" @click.self="resetModal = false">
+            <div class="modal-box">
+                <div class="modal-header">
                     <div>
-                        <label class="block text-sm text-gray-700">Sandi Baru</label>
-                        <input v-model="resetForm.password" type="password" class="w-full rounded border-gray-300 text-sm" />
+                        <h3 class="modal-title">Reset Kata Sandi</h3>
+                        <p class="modal-subtitle">Atur ulang kata sandi untuk akun <strong>{{ selectedUser?.name }}</strong></p>
                     </div>
-                    <div>
-                        <label class="block text-sm text-gray-700">Konfirmasi Sandi</label>
-                        <input v-model="resetForm.password_confirmation" type="password" class="w-full rounded border-gray-300 text-sm" />
+                    <button type="button" @click="resetModal = false" class="modal-close">&times;</button>
+                </div>
+
+                <form @submit.prevent="submitReset">
+                    <div class="modal-body">
+                        <div>
+                            <label class="ui-label">Kata Sandi Baru</label>
+                            <input
+                                v-model="resetForm.password"
+                                type="password"
+                                placeholder="Minimal 8 karakter"
+                                required
+                                class="ui-input"
+                            />
+                            <p v-if="resetForm.errors.password" class="ui-error">{{ resetForm.errors.password }}</p>
+                        </div>
+                        <div>
+                            <label class="ui-label">Konfirmasi Kata Sandi Baru</label>
+                            <input
+                                v-model="resetForm.password_confirmation"
+                                type="password"
+                                placeholder="Ulangi kata sandi baru"
+                                required
+                                class="ui-input"
+                            />
+                            <p v-if="resetForm.errors.password_confirmation" class="ui-error">{{ resetForm.errors.password_confirmation }}</p>
+                        </div>
                     </div>
-                    <div class="flex justify-end gap-2">
-                        <button type="button" @click="resetModal = false" class="px-4 py-2 text-sm text-gray-700 border rounded">Batal</button>
-                        <button type="submit" class="px-4 py-2 text-sm bg-indigo-600 text-white rounded">Simpan</button>
+
+                    <div class="modal-footer">
+                        <button type="button" @click="resetModal = false" class="btn-secondary-ui">
+                            Batal
+                        </button>
+                        <button type="submit" :disabled="resetForm.processing" class="btn-brand">
+                            {{ resetForm.processing ? 'Menyimpan...' : 'Simpan Sandi Baru' }}
+                        </button>
                     </div>
                 </form>
             </div>

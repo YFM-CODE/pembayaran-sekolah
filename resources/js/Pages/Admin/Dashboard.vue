@@ -9,207 +9,263 @@ const props = defineProps({
 });
 
 const page = usePage();
-const nama = computed(() => page.props.auth?.user?.name ?? 'Admin');
+const nama = computed(() => page.props.auth?.user?.name ?? 'Administrator');
 const rupiah = (n) => 'Rp ' + Number(n ?? 0).toLocaleString('id-ID');
 const tanggal = new Date().toLocaleDateString('id-ID', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
 });
 
-// Kartu "Total Tunggakan SPP" dijadikan sorotan utama, sisanya jadi kartu biasa.
+// Kartu "Total Tunggakan SPP" dijadikan sorotan utama, sisanya jadi kartu metrik.
 const tunggakan = computed(() => props.ringkasan.find((i) => i.tipe === 'rupiah'));
 const kartu = computed(() => props.ringkasan.filter((i) => i.tipe !== 'rupiah'));
 
-// Ikon (path heroicons outline) & warna aksen per kartu, dicocokkan lewat label.
-const gaya = {
-    'Total Siswa Terdaftar': { ikon: 'M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z', warna: 'bg-indigo-50 text-indigo-600' },
-    'Master Rombel / Kelas': { ikon: 'M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.697 50.697 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5', warna: 'bg-sky-50 text-sky-600' },
-    'Pengguna Sistem': { ikon: 'M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z', warna: 'bg-violet-50 text-violet-600' },
-    'Skema Tarif SPP': { ikon: 'M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z', warna: 'bg-emerald-50 text-emerald-600' },
-    'Program Keringanan': { ikon: 'M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z', warna: 'bg-amber-50 text-amber-600' },
-    'Tagihan Belum Lunas': { ikon: 'M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z', warna: 'bg-rose-50 text-rose-600' },
+const kategoriKartu = (label) => {
+    const map = {
+        'Total Siswa Terdaftar': 'Data Pokok',
+        'Master Rombel / Kelas': 'Akademik',
+        'Pengguna Sistem': 'Otorisasi',
+        'Skema Tarif SPP': 'Keuangan',
+        'Program Keringanan': 'Beasiswa',
+        'Tagihan Belum Lunas': 'Penagihan',
+    };
+    return map[label] || 'Ringkasan';
 };
-const gayaDefault = { ikon: 'M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6z', warna: 'bg-slate-100 text-slate-600' };
-const gayaKartu = (label) => gaya[label] ?? gayaDefault;
 
 // Pintasan dikelompokkan sesuai rute di grup admin.* pada web.php.
 const kelompok = [
     {
-        judul: 'Master data',
+        judul: 'Master Data Akademik',
         item: [
-            { teks: 'Tambah siswa', rute: 'admin.siswa.create' },
-            { teks: 'Daftar siswa', rute: 'admin.siswa.index' },
-            { teks: 'Tambah kelas', rute: 'admin.kelas.create' },
-            { teks: 'Daftar kelas', rute: 'admin.kelas.index' },
+            { teks: 'Tambah Siswa Baru', sub: 'Input biodata & akun siswa', rute: 'admin.siswa.create' },
+            { teks: 'Daftar Master Siswa', sub: 'Kelola status & kelas siswa', rute: 'admin.siswa.index' },
+            { teks: 'Tambah Kelas Baru', sub: 'Buka rombel tahun ajaran', rute: 'admin.kelas.create' },
+            { teks: 'Daftar Master Kelas', sub: 'Tingkat X, XI, dan XII', rute: 'admin.kelas.index' },
         ],
     },
     {
-        judul: 'Pengguna',
+        judul: 'Otorisasi & Pengguna',
         item: [
-            { teks: 'Tambah pengguna', rute: 'admin.users.create' },
-            { teks: 'Kelola akun & status', rute: 'admin.users.index' },
+            { teks: 'Tambah Pengguna', sub: 'Buat akun petugas atau siswa', rute: 'admin.users.create' },
+            { teks: 'Manajemen Pengguna', sub: 'Kelola peran, status & sandi', rute: 'admin.users.index' },
+            { teks: 'Profil & Keamanan Saya', sub: 'Pengaturan akun administrator', rute: 'profile.edit' },
         ],
     },
     {
-        judul: 'Keuangan SPP',
+        judul: 'Keuangan & Tagihan SPP',
         item: [
-            { teks: 'Buat tarif SPP', rute: 'admin.tarif-spp.create' },
-            { teks: 'Atur keringanan', rute: 'admin.keringanan-spp.index' },
-            { teks: 'Pantau tagihan', rute: 'admin.tagihan-spp.index' },
+            { teks: 'Skema Tarif SPP', sub: 'Susun tarif per tingkat kelas', rute: 'admin.tarif-spp.index' },
+            { teks: 'Program Keringanan', sub: 'Beasiswa & SK potongan SPP', rute: 'admin.keringanan-spp.index' },
+            { teks: 'Tagihan Bulanan Siswa', sub: 'Generate & pantau pelunasan', rute: 'admin.tagihan-spp.index' },
         ],
     },
 ];
 
 const totalSiswa = computed(() => {
     const g = props.grafik;
-    return g ? g.siswa_aktif + g.siswa_lulus + g.siswa_keluar : 0;
+    return g ? (g.siswa_aktif || 0) + (g.siswa_lulus || 0) + (g.siswa_keluar || 0) : 0;
 });
-const lebar = (n) => (totalSiswa.value > 0 ? Math.round((n / totalSiswa.value) * 100) : 0);
+
+const lebar = (n) => (totalSiswa.value > 0 ? Math.round(((n || 0) / totalSiswa.value) * 100) : 0);
 const lunas = computed(() => Number(props.grafik?.persentase_lunas ?? 0));
 </script>
 
 <template>
-    <Head title="Dashboard Admin" />
-
     <AuthenticatedLayout>
+        <Head title="Dashboard Administrator" />
+
         <template #header>
-            <h2 class="text-xl font-bold text-slate-800">Dashboard Administrator</h2>
+            <div class="page-head">
+                <div>
+                    <span class="page-head-eyebrow">Pusat Kendali Sistem</span>
+                    <h1 class="page-head-title">Dashboard Administrator</h1>
+                    <p class="page-head-sub">
+                        Kelola data induk siswa, rombongan belajar, akun pengguna, dan pantau kewajiban SPP secara terpusat.
+                    </p>
+                </div>
+                <div class="page-head-actions">
+                    <span class="date-chip">{{ tanggal }}</span>
+                </div>
+            </div>
         </template>
 
-        <div class="min-h-screen bg-slate-50 py-8">
-            <div class="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
-                <!-- Sambutan + sorotan tunggakan -->
-                <section class="overflow-hidden rounded-2xl bg-slate-900 text-white shadow-lg">
-                    <div class="grid gap-8 p-6 sm:p-8 lg:grid-cols-5">
-                        <div class="flex flex-col justify-between lg:col-span-3">
-                            <div>
-                                <p class="text-sm text-slate-400">{{ tanggal }}</p>
-                                <h1 class="mt-1 text-3xl font-black tracking-tight sm:text-4xl">Selamat datang, {{ nama }}.</h1>
-                                <p class="mt-2 max-w-lg text-sm text-slate-300">
-                                    Kelola data induk, akun pengguna, dan pantau pelunasan SPP dari satu tempat.
-                                </p>
-                            </div>
+        <div class="admin-page">
+            <div class="admin-wrap">
+                <!-- 1. Hero Banner Sambutan & Sorotan Tunggakan -->
+                <section class="hero-banner" aria-label="Ringkasan Utama Keuangan SPP">
+                    <div class="hero-left">
+                        <div class="hero-status-pill">
+                            <span class="hero-dot" aria-hidden="true"></span>
+                            <span>Sistem Administrasi SPP Aktif</span>
+                        </div>
+                        <h2 class="hero-title">Selamat datang kembali, {{ nama }}.</h2>
+                        <p class="hero-desc">
+                            Pantau realisasi pembayaran SPP, komposisi keaktifan siswa, serta kelola seluruh parameter master data sekolah dari satu halaman.
+                        </p>
 
-                            <div v-if="tunggakan" class="mt-8">
-                                <p class="text-sm text-slate-400">{{ tunggakan.label }}</p>
-                                <p class="mt-1 text-4xl font-black tabular-nums text-amber-300 sm:text-5xl">
-                                    {{ rupiah(tunggakan.nilai) }}
-                                </p>
-                                <div class="mt-3 flex flex-wrap items-center gap-3 text-sm">
-                                    <span class="text-slate-400">{{ tunggakan.sub }}</span>
-                                    <Link
-                                        v-if="tunggakan.url"
-                                        :href="tunggakan.url"
-                                        class="rounded-lg bg-white/10 px-3 py-1.5 font-semibold text-white ring-1 ring-white/20 transition hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
-                                    >
-                                        Lihat rincian tagihan
-                                    </Link>
-                                </div>
+                        <div v-if="tunggakan" class="hero-highlight">
+                            <span class="highlight-label">{{ tunggakan.label }}</span>
+                            <div class="highlight-value">{{ rupiah(tunggakan.nilai) }}</div>
+                            <div class="highlight-foot">
+                                <span>{{ tunggakan.sub }}</span>
+                                <Link
+                                    v-if="tunggakan.url"
+                                    :href="tunggakan.url"
+                                    class="highlight-link"
+                                >
+                                    Buka Rincian Tagihan &rarr;
+                                </Link>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Donut pelunasan -->
-                        <div v-if="grafik" class="flex items-center justify-center gap-6 lg:col-span-2">
-                            <div class="relative h-40 w-40 shrink-0">
-                                <svg viewBox="0 0 36 36" class="h-full w-full -rotate-90" role="img" :aria-label="`${lunas}% tagihan lunas`">
-                                    <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#f43f5e" stroke-width="3.5" />
+                    <!-- Donut Rasio Pelunasan -->
+                    <div v-if="grafik" class="hero-right">
+                        <span class="donut-title">Rasio Pelunasan Tagihan</span>
+                        <div class="donut-body">
+                            <div class="donut-wrap">
+                                <svg viewBox="0 0 36 36" class="donut-svg" role="img" :aria-label="`${lunas}% tagihan lunas`">
+                                    <circle cx="18" cy="18" r="15.9155" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="3.6" />
                                     <circle
-                                        cx="18" cy="18" r="15.9155" fill="none" stroke="#10b981" stroke-width="3.5"
-                                        stroke-linecap="butt"
+                                        cx="18"
+                                        cy="18"
+                                        r="15.9155"
+                                        fill="none"
+                                        stroke="#6ee7b7"
+                                        stroke-width="3.6"
+                                        stroke-linecap="round"
                                         :stroke-dasharray="`${lunas} ${100 - lunas}`"
                                     />
                                 </svg>
-                                <div class="absolute inset-0 flex flex-col items-center justify-center">
-                                    <span class="text-3xl font-black tabular-nums">{{ lunas }}%</span>
-                                    <span class="text-xs text-slate-400">lunas</span>
+                                <div class="donut-center">
+                                    <strong>{{ lunas }}%</strong>
+                                    <span>Lunas</span>
                                 </div>
                             </div>
-                            <ul class="space-y-3 text-sm">
-                                <li class="flex items-center gap-2">
-                                    <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
-                                    <span class="text-slate-300">Lunas</span>
-                                    <strong class="tabular-nums">{{ grafik.lunas }}</strong>
+
+                            <ul class="donut-legend">
+                                <li>
+                                    <span class="legend-dot dot-lunas"></span>
+                                    <span class="legend-lbl">Tagihan Lunas</span>
+                                    <strong>{{ grafik.lunas }}</strong>
                                 </li>
-                                <li class="flex items-center gap-2">
-                                    <span class="h-2.5 w-2.5 rounded-full bg-rose-500"></span>
-                                    <span class="text-slate-300">Belum lunas</span>
-                                    <strong class="tabular-nums">{{ grafik.belum_lunas }}</strong>
+                                <li>
+                                    <span class="legend-dot dot-tunggak"></span>
+                                    <span class="legend-lbl">Belum Lunas</span>
+                                    <strong>{{ grafik.belum_lunas }}</strong>
                                 </li>
-                                <li class="border-t border-white/10 pt-2 text-slate-400">
-                                    Total {{ grafik.total_tagihan }} tagihan
+                                <li class="legend-total">
+                                    <span>Total Diterbitkan</span>
+                                    <strong>{{ grafik.total_tagihan }} tagihan</strong>
                                 </li>
                             </ul>
                         </div>
                     </div>
                 </section>
 
-                <!-- Ringkasan sistem -->
-                <section>
-                    <h3 class="mb-3 text-base font-bold text-slate-800">Ringkasan sistem</h3>
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <!-- 2. Kartu Ringkasan Sistem -->
+                <section class="section-block" aria-label="Metrik Master Data">
+                    <div class="section-bar">
+                        <div>
+                            <h2 class="section-heading">Ringkasan Sistem &amp; Master Data</h2>
+                            <p class="section-sub">Data aktual yang tercatat pada basis data sekolah saat ini.</p>
+                        </div>
+                    </div>
+
+                    <div class="metric-grid">
                         <component
                             :is="item.url ? Link : 'div'"
                             v-for="item in kartu"
                             :key="item.label"
                             :href="item.url"
-                            class="group flex items-start gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                            class="metric-card"
+                            :class="{ 'is-Interactive': !!item.url, 'is-warning': item.label === 'Tagihan Belum Lunas' }"
                         >
-                            <span :class="['flex h-11 w-11 shrink-0 items-center justify-center rounded-xl', gayaKartu(item.label).warna]">
-                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" :d="gayaKartu(item.label).ikon" />
-                                </svg>
-                            </span>
-                            <span class="min-w-0">
-                                <span class="block text-sm text-slate-500">{{ item.label }}</span>
-                                <span class="block text-2xl font-black tabular-nums text-slate-900">{{ item.nilai }}</span>
-                                <span class="block truncate text-xs text-slate-400">{{ item.sub }}</span>
-                            </span>
+                            <div class="metric-top">
+                                <span class="metric-tag">{{ kategoriKartu(item.label) }}</span>
+                                <span v-if="item.url" class="metric-arrow" aria-hidden="true">Kelola &rarr;</span>
+                            </div>
+                            <div class="metric-value">{{ item.nilai }}</div>
+                            <div class="metric-label">{{ item.label }}</div>
+                            <div class="metric-sub">{{ item.sub }}</div>
                         </component>
                     </div>
                 </section>
 
-                <div class="grid gap-6 lg:grid-cols-5">
-                    <!-- Distribusi siswa -->
-                    <section v-if="grafik" class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
-                        <div class="mb-4 flex items-baseline justify-between">
-                            <h3 class="text-base font-bold text-slate-800">Status siswa</h3>
-                            <span class="text-sm text-slate-500">{{ totalSiswa }} siswa</span>
+                <!-- 3. Distribusi Siswa & Pintasan Operasional -->
+                <div class="bottom-grid">
+                    <!-- Distribusi Status Siswa -->
+                    <section v-if="grafik" class="panel-card">
+                        <div class="panel-head">
+                            <div>
+                                <h3 class="panel-title">Komposisi Status Siswa</h3>
+                                <p class="panel-sub">Proporsi keaktifan siswa terdaftar</p>
+                            </div>
+                            <span class="badge-pill badge-success">{{ totalSiswa }} Siswa</span>
                         </div>
 
-                        <div class="mb-5 flex h-3 overflow-hidden rounded-full bg-slate-100">
-                            <div class="bg-emerald-500" :style="{ width: lebar(grafik.siswa_aktif) + '%' }"></div>
-                            <div class="bg-sky-500" :style="{ width: lebar(grafik.siswa_lulus) + '%' }"></div>
-                            <div class="bg-slate-400" :style="{ width: lebar(grafik.siswa_keluar) + '%' }"></div>
+                        <div class="progress-track" aria-hidden="true">
+                            <div class="bar-aktif" :style="{ width: lebar(grafik.siswa_aktif) + '%' }"></div>
+                            <div class="bar-lulus" :style="{ width: lebar(grafik.siswa_lulus) + '%' }"></div>
+                            <div class="bar-keluar" :style="{ width: lebar(grafik.siswa_keluar) + '%' }"></div>
                         </div>
 
-                        <dl class="space-y-3 text-sm">
-                            <div class="flex items-center justify-between">
-                                <dt class="flex items-center gap-2 text-slate-600"><span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>Aktif</dt>
-                                <dd class="font-bold tabular-nums text-slate-900">{{ grafik.siswa_aktif }} <span class="font-normal text-slate-400">({{ lebar(grafik.siswa_aktif) }}%)</span></dd>
+                        <dl class="status-list">
+                            <div class="status-row">
+                                <dt>
+                                    <span class="status-dot dot-aktif"></span>
+                                    <span>Siswa Aktif</span>
+                                </dt>
+                                <dd>
+                                    <strong>{{ grafik.siswa_aktif }}</strong>
+                                    <span>({{ lebar(grafik.siswa_aktif) }}%)</span>
+                                </dd>
                             </div>
-                            <div class="flex items-center justify-between">
-                                <dt class="flex items-center gap-2 text-slate-600"><span class="h-2.5 w-2.5 rounded-full bg-sky-500"></span>Lulus</dt>
-                                <dd class="font-bold tabular-nums text-slate-900">{{ grafik.siswa_lulus }} <span class="font-normal text-slate-400">({{ lebar(grafik.siswa_lulus) }}%)</span></dd>
+                            <div class="status-row">
+                                <dt>
+                                    <span class="status-dot dot-lulus"></span>
+                                    <span>Alumni / Lulus</span>
+                                </dt>
+                                <dd>
+                                    <strong>{{ grafik.siswa_lulus }}</strong>
+                                    <span>({{ lebar(grafik.siswa_lulus) }}%)</span>
+                                </dd>
                             </div>
-                            <div class="flex items-center justify-between">
-                                <dt class="flex items-center gap-2 text-slate-600"><span class="h-2.5 w-2.5 rounded-full bg-slate-400"></span>Keluar / pindah</dt>
-                                <dd class="font-bold tabular-nums text-slate-900">{{ grafik.siswa_keluar }} <span class="font-normal text-slate-400">({{ lebar(grafik.siswa_keluar) }}%)</span></dd>
+                            <div class="status-row">
+                                <dt>
+                                    <span class="status-dot dot-keluar"></span>
+                                    <span>Pindah / Keluar</span>
+                                </dt>
+                                <dd>
+                                    <strong>{{ grafik.siswa_keluar }}</strong>
+                                    <span>({{ lebar(grafik.siswa_keluar) }}%)</span>
+                                </dd>
                             </div>
                         </dl>
                     </section>
 
-                    <!-- Pintasan -->
-                    <section class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-3">
-                        <h3 class="mb-4 text-base font-bold text-slate-800">Pintasan</h3>
-                        <div class="grid gap-5 sm:grid-cols-3">
-                            <div v-for="grup in kelompok" :key="grup.judul">
-                                <p class="mb-2 text-sm font-semibold text-slate-500">{{ grup.judul }}</p>
-                                <ul class="space-y-1.5">
-                                    <li v-for="l in grup.item" :key="l.rute">
-                                        <Link
-                                            :href="route(l.rute)"
-                                            class="block rounded-lg bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                                        >
-                                            {{ l.teks }}
+                    <!-- Pintasan Menu Admin -->
+                    <section class="panel-card">
+                        <div class="panel-head">
+                            <div>
+                                <h3 class="panel-title">Pintasan Operasional Administrator</h3>
+                                <p class="panel-sub">Akses cepat ke modul pengelolaan data pokok dan keuangan SPP</p>
+                            </div>
+                        </div>
+
+                        <div class="shortcut-columns">
+                            <div v-for="grup in kelompok" :key="grup.judul" class="shortcut-group">
+                                <h4 class="shortcut-group-title">{{ grup.judul }}</h4>
+                                <ul class="shortcut-list">
+                                    <li v-for="l in grup.item" :key="l.teks">
+                                        <Link :href="route(l.rute)" class="shortcut-item">
+                                            <div>
+                                                <strong class="shortcut-name">{{ l.teks }}</strong>
+                                                <small class="shortcut-desc">{{ l.sub }}</small>
+                                            </div>
+                                            <span class="shortcut-go" aria-hidden="true">&rarr;</span>
                                         </Link>
                                     </li>
                                 </ul>
@@ -221,3 +277,537 @@ const lunas = computed(() => Number(props.grafik?.persentase_lunas ?? 0));
         </div>
     </AuthenticatedLayout>
 </template>
+
+<style scoped>
+.date-chip {
+    display: inline-flex;
+    align-items: center;
+    height: 38px;
+    padding: 0 var(--space-3);
+    border-radius: var(--radius);
+    background: var(--color-bg);
+    border: var(--border);
+    color: var(--color-muted);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+}
+
+/* Hero Banner */
+.hero-banner {
+    background: linear-gradient(135deg, var(--color-brand) 0%, var(--color-brand-dark) 100%);
+    color: #ffffff;
+    border-radius: 12px;
+    padding: var(--space-6);
+    box-shadow: var(--shadow);
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    gap: var(--space-6);
+    align-items: center;
+}
+
+.hero-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-3);
+}
+
+.hero-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: #6ee7b7;
+}
+
+.hero-title {
+    margin: 0 0 var(--space-2);
+    font-size: clamp(1.5rem, 2.6vw, 2rem);
+    font-weight: var(--weight-bold);
+    letter-spacing: -0.02em;
+    line-height: var(--leading-tight);
+    color: #ffffff;
+}
+
+.hero-desc {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.86);
+    max-width: 58ch;
+    line-height: var(--leading-body);
+}
+
+.hero-highlight {
+    margin-top: var(--space-5);
+    padding-top: var(--space-4);
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.highlight-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: var(--weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(255, 255, 255, 0.78);
+}
+
+.highlight-value {
+    margin-top: 4px;
+    font-size: clamp(1.75rem, 3vw, 2.35rem);
+    font-weight: var(--weight-bold);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    color: #fde68a;
+}
+
+.highlight-foot {
+    margin-top: var(--space-2);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: var(--text-xs);
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.highlight-link {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+    font-weight: var(--weight-bold);
+    text-decoration: none;
+    transition: background-color 0.15s ease;
+}
+
+.highlight-link:hover {
+    background: rgba(255, 255, 255, 0.26);
+}
+
+/* Donut Box */
+.hero-right {
+    background: rgba(16, 36, 43, 0.24);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 10px;
+    padding: var(--space-5);
+}
+
+.donut-title {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: var(--weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(255, 255, 255, 0.82);
+    margin-bottom: var(--space-4);
+}
+
+.donut-body {
+    display: flex;
+    align-items: center;
+    gap: var(--space-5);
+}
+
+.donut-wrap {
+    position: relative;
+    width: 128px;
+    height: 128px;
+    flex-shrink: 0;
+}
+
+.donut-svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.donut-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.donut-center strong {
+    font-size: 1.5rem;
+    font-weight: var(--weight-bold);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+
+.donut-center span {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.78);
+}
+
+.donut-legend {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: var(--text-xs);
+}
+
+.donut-legend li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    flex-shrink: 0;
+}
+
+.dot-lunas {
+    background: #6ee7b7;
+}
+
+.dot-tunggak {
+    background: #fcd34d;
+}
+
+.legend-lbl {
+    flex: 1;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.legend-total {
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.16);
+    color: rgba(255, 255, 255, 0.78);
+}
+
+/* Section & Metric Cards */
+.section-bar {
+    margin-bottom: var(--space-3);
+}
+
+.section-heading {
+    margin: 0;
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+    color: var(--color-ink);
+}
+
+.section-sub {
+    margin: 2px 0 0;
+    font-size: var(--text-xs);
+    color: var(--color-muted);
+}
+
+.metric-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-4);
+}
+
+.metric-card {
+    background: var(--color-surface);
+    border: var(--border);
+    border-left: 4px solid var(--color-brand);
+    border-radius: 10px;
+    padding: var(--space-5);
+    box-shadow: var(--shadow);
+    text-decoration: none;
+    color: var(--color-ink);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.metric-card.is-warning {
+    border-left-color: #d97706;
+}
+
+.metric-card.is-Interactive:hover {
+    transform: translateY(-2px);
+    border-color: var(--color-brand);
+    box-shadow: var(--shadow-lift);
+}
+
+.metric-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+}
+
+.metric-tag {
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    background: var(--color-brand-tint);
+    color: var(--color-brand-dark);
+    font-size: 0.7rem;
+    font-weight: var(--weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.is-warning .metric-tag {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.metric-arrow {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-bold);
+    color: var(--color-brand);
+}
+
+.metric-value {
+    font-size: 1.85rem;
+    font-weight: var(--weight-bold);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+    color: var(--color-ink);
+}
+
+.metric-label {
+    margin-top: 6px;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-bold);
+    color: var(--color-ink);
+}
+
+.metric-sub {
+    margin-top: 2px;
+    font-size: var(--text-xs);
+    color: var(--color-muted);
+}
+
+/* Bottom Grid */
+.bottom-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr);
+    gap: var(--space-5);
+    align-items: start;
+}
+
+.panel-card {
+    background: var(--color-surface);
+    border: var(--border);
+    border-radius: 10px;
+    padding: var(--space-5);
+    box-shadow: var(--shadow);
+}
+
+.panel-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding-bottom: var(--space-3);
+    margin-bottom: var(--space-4);
+    border-bottom: var(--border);
+}
+
+.panel-title {
+    margin: 0;
+    font-size: var(--text-base);
+    font-weight: var(--weight-bold);
+    color: var(--color-ink);
+}
+
+.panel-sub {
+    margin: 2px 0 0;
+    font-size: var(--text-xs);
+    color: var(--color-muted);
+}
+
+.progress-track {
+    display: flex;
+    height: 12px;
+    border-radius: 999px;
+    background: var(--color-bg);
+    border: var(--border);
+    overflow: hidden;
+    margin-bottom: var(--space-4);
+}
+
+.bar-aktif {
+    background: var(--color-brand);
+}
+
+.bar-lulus {
+    background: #0284c7;
+}
+
+.bar-keluar {
+    background: #94a3b8;
+}
+
+.status-list {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: var(--text-sm);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px dashed var(--color-line);
+}
+
+.status-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.status-row dt {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-ink);
+    font-weight: var(--weight-medium);
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+}
+
+.dot-aktif {
+    background: var(--color-brand);
+}
+
+.dot-lulus {
+    background: #0284c7;
+}
+
+.dot-keluar {
+    background: #94a3b8;
+}
+
+.status-row dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.status-row dd span {
+    margin-left: 4px;
+    font-size: var(--text-xs);
+    color: var(--color-muted);
+}
+
+/* Shortcuts */
+.shortcut-columns {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-4);
+}
+
+.shortcut-group-title {
+    margin: 0 0 var(--space-2);
+    font-size: 0.75rem;
+    font-weight: var(--weight-bold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-brand);
+}
+
+.shortcut-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.shortcut-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    background: var(--color-bg);
+    border: var(--border);
+    text-decoration: none;
+    color: var(--color-ink);
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.shortcut-item:hover {
+    background: var(--color-brand-tint);
+    border-color: var(--color-brand);
+}
+
+.shortcut-name {
+    display: block;
+    font-size: var(--text-xs);
+    font-weight: var(--weight-bold);
+    color: var(--color-ink);
+}
+
+.shortcut-desc {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--color-muted);
+    margin-top: 1px;
+}
+
+.shortcut-go {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-bold);
+    color: var(--color-brand);
+}
+
+@media (max-width: 1024px) {
+    .hero-banner,
+    .bottom-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .shortcut-columns {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .hero-banner {
+        padding: var(--space-5) var(--space-4);
+    }
+
+    .donut-body {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .donut-legend {
+        width: 100%;
+    }
+
+    .metric-grid,
+    .shortcut-columns {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+</style>

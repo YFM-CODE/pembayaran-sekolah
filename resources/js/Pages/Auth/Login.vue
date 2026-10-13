@@ -89,6 +89,7 @@ const submit = () => {
                         <div class="password-wrapper">
                             <input
                                 id="password"
+                                placeholder="Masukkan kata sandi"
                                 v-model="form.password"
                                 :type="showPassword ? 'text' : 'password'"
                                 autocomplete="current-password"
@@ -513,6 +514,7 @@ input.is-invalid {
 @media (prefers-reduced-motion: reduce) {
     .btn-submit {
         transition: none;
+        
     }
 }
 </style>

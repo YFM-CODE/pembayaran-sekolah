@@ -27,7 +27,7 @@ class PembayaranSppService
 
             if ((float) $data['jumlah_dibayar'] > (float) $tagihan->sisa_tagihan) {
                 throw ValidationException::withMessages([
-                    'jumlah_dibayar' => 'Jumlah bayar tidak boleh melebihi sisa tagihan (Rp ' . number_format($tagihan->sisa_tagihan, 0, ',', '.') . ').',
+                    'jumlah_dibayar' => 'Jumlah bayar tidak boleh melebihi sisa tagihan (Rp '.number_format($tagihan->sisa_tagihan, 0, ',', '.').').',
                 ]);
             }
 
@@ -60,13 +60,13 @@ class PembayaranSppService
 
     private function generateNomorKuitansi(): string
     {
-        $prefix = 'KW-SPP-' . date('Ym') . '-';
+        $prefix = 'KW-SPP-'.date('Ym').'-';
         $terakhir = TransaksiSpp::where('nomor_kuitansi', 'like', "{$prefix}%")
             ->orderByDesc('id')
             ->value('nomor_kuitansi');
 
         $urutan = $terakhir ? ((int) substr($terakhir, -4)) + 1 : 1;
 
-        return $prefix . str_pad((string) $urutan, 4, '0', STR_PAD_LEFT);
+        return $prefix.str_pad((string) $urutan, 4, '0', STR_PAD_LEFT);
     }
 }

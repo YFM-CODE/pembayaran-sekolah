@@ -31,6 +31,7 @@ class DispensasiSppRepository implements DispensasiSppInterface
     public function perbarui(int $id, array $data): bool
     {
         $dispensasi = DispensasiSpp::findOrFail($id);
+
         return $dispensasi->update($data);
     }
 }

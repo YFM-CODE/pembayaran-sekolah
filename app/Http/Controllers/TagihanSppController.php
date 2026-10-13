@@ -45,9 +45,9 @@ class TagihanSppController extends Controller
     {
         $validated = $request->validate([
             'tahun_ajaran' => ['required', 'string'],
-            'bulan'        => ['required', 'integer', 'between:1,12'],
-            'tahun'        => ['required', 'integer', 'min:2020'],
-            'jatuh_tempo'  => ['required', 'date'],
+            'bulan' => ['required', 'integer', 'between:1,12'],
+            'tahun' => ['required', 'integer', 'min:2020'],
+            'jatuh_tempo' => ['required', 'date'],
         ]);
 
         // 1. Ambil tarif yang sudah DISETUJUI oleh Komite
@@ -59,7 +59,7 @@ class TagihanSppController extends Controller
 
         if ($tarifDisetujui->isEmpty()) {
             return redirect()->back()->withErrors([
-                'error' => 'Tidak dapat membuat tagihan: Belum ada tarif SPP pada tahun ajaran ' . $validated['tahun_ajaran'] . ' yang disetujui oleh Komite Sekolah.',
+                'error' => 'Tidak dapat membuat tagihan: Belum ada tarif SPP pada tahun ajaran '.$validated['tahun_ajaran'].' yang disetujui oleh Komite Sekolah.',
             ]);
         }
 
@@ -78,6 +78,7 @@ class TagihanSppController extends Controller
 
                 if (! $tingkatRaw) {
                     $totalDilewati++;
+
                     continue;
                 }
 
@@ -86,10 +87,18 @@ class TagihanSppController extends Controller
                     $tTingkat = trim(str_ireplace('kelas', '', (string) $t->tingkat));
                     $sTingkat = trim(str_ireplace('kelas', '', (string) $tingkatRaw));
 
-                    if ($tTingkat === $sTingkat) return true;
-                    if (in_array($tTingkat, ['10', 'X']) && in_array($sTingkat, ['10', 'X'])) return true;
-                    if (in_array($tTingkat, ['11', 'XI']) && in_array($sTingkat, ['11', 'XI'])) return true;
-                    if (in_array($tTingkat, ['12', 'XII']) && in_array($sTingkat, ['12', 'XII'])) return true;
+                    if ($tTingkat === $sTingkat) {
+                        return true;
+                    }
+                    if (in_array($tTingkat, ['10', 'X']) && in_array($sTingkat, ['10', 'X'])) {
+                        return true;
+                    }
+                    if (in_array($tTingkat, ['11', 'XI']) && in_array($sTingkat, ['11', 'XI'])) {
+                        return true;
+                    }
+                    if (in_array($tTingkat, ['12', 'XII']) && in_array($sTingkat, ['12', 'XII'])) {
+                        return true;
+                    }
 
                     return false;
                 });
@@ -97,6 +106,7 @@ class TagihanSppController extends Controller
                 // Lewati jika tarif untuk tingkat siswa belum disetujui Komite
                 if (! $tarif) {
                     $totalDilewati++;
+
                     continue;
                 }
 
@@ -131,18 +141,18 @@ class TagihanSppController extends Controller
                 $nominalTagihan = max(0, $nominalAsli - $potongan);
 
                 TagihanSpp::create([
-                    'siswa_id'          => $siswa->id,
-                    'tarif_spp_id'      => $tarif->id,
+                    'siswa_id' => $siswa->id,
+                    'tarif_spp_id' => $tarif->id,
                     'keringanan_spp_id' => $keringananSppId,
-                    'bulan'             => $validated['bulan'],
-                    'tahun'             => $validated['tahun'],
-                    'nominal_asli'      => $nominalAsli,
-                    'nominal_potongan'  => $potongan,
-                    'nominal_tagihan'   => $nominalTagihan,
-                    'total_terbayar'    => 0,
-                    'sisa_tagihan'      => $nominalTagihan,
-                    'status'            => 'belum_bayar',
-                    'jatuh_tempo'       => $validated['jatuh_tempo'],
+                    'bulan' => $validated['bulan'],
+                    'tahun' => $validated['tahun'],
+                    'nominal_asli' => $nominalAsli,
+                    'nominal_potongan' => $potongan,
+                    'nominal_tagihan' => $nominalTagihan,
+                    'total_terbayar' => 0,
+                    'sisa_tagihan' => $nominalTagihan,
+                    'status' => 'belum_bayar',
+                    'jatuh_tempo' => $validated['jatuh_tempo'],
                 ]);
 
                 $totalDibuat++;
@@ -166,7 +176,7 @@ class TagihanSppController extends Controller
             DB::rollBack();
 
             return redirect()->back()->withErrors([
-                'error' => 'Gagal mengenerate tagihan: ' . $th->getMessage(),
+                'error' => 'Gagal mengenerate tagihan: '.$th->getMessage(),
             ]);
         }
     }

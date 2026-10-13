@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\KepalaSekolah;
 
 use App\Http\Controllers\Controller;
-use App\Models\Kelas;
 use App\Models\SetoranKasir;
 use App\Models\TransaksiSpp;
 use Carbon\Carbon;
